@@ -10,6 +10,7 @@
 #include "grouter.h"
 #include "gnet.h"
 #include "ip.h"
+#include "protocols.h"
 #include <pthread.h>
 #include <sys/time.h>
 #include <stdio.h>
@@ -23,7 +24,7 @@ void OSPFProcessPacket(gpacket_t *in_pkt)
 
     switch (ospfhdr->type)
     {
-    case OSPF_HELLO_MESSAGE:
+    case OSPF_HELLO:
         verbose(2, "[OSPFProcessPacket]:: OSPF processing for HELLO MSG");
         OSPFProcessHelloMsg(in_pkt);
         break;
@@ -87,7 +88,7 @@ int create_hello_packet(ospf_hello* hello_packet,
 	hello_packet-> hello_interval = 10; //10 seconds
 	hello_packet-> options = 0; //figure out later
 	hello_packet-> priority = 0; //0
-	hello_packet-> 40; //40 seconds
+	hello_packet-> router_dead_interval = 40; //40 seconds
 	hello_packet-> neighbor_list_start = neighbor_list_start;
 
 }
@@ -127,7 +128,7 @@ void OSPFSendHelloPacket()
     create_hello_packet(hello_packet, NeighborIPs);
     NumberOfInterfaces = getInterfaceIPs(NeighborIPs);
     //ip header+ospf header+ospf packet info+payload
-    PacketSize = (ipkt->ip_hdr_len)*4 + (hello_packet->ospf_hdr_len)*4 + sizeof(int)*NumberOfInterfaces;
+    PacketSize = (ipkt->ip_hdr_len)*4 + 24*4 + sizeof(int)*NumberOfInterfaces;
     IPBroadcastPacket(out_pkt, PacketSize, OSPF_PROTOCOL);
 
 

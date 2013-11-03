@@ -149,7 +149,7 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 			COPY_IP(ip_pkt->ip_dst, gHtonl(tmpbuf, bcast_ip));  // might need to use gHtonl as in IPOutgoingPacket
 			ip_pkt->ip_pkt_len = htons(size + ip_pkt->ip_hdr_len * 4);
 
-			temp_pkt->frame.dst_interface = netarray.elem[i];
+			temp_pkt->frame.dst_interface = (int)*(netarray.elem[i]);
 
 			verbose(2, "[IPOutgoingPacket]:: lookup MTU of nexthop");
 			// lookup the IP address of the destination interface..

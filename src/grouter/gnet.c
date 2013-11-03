@@ -216,7 +216,7 @@ int getInterfaceIPs(int* IParray)
 	{
 		if(netarray.elem[i] != NULL)
 		{
-			IParray[currentIPindex] = netarray.elem[i]->ip_addr;
+			IParray[currentIPindex] = (int)*(netarray.elem[i]->ip_addr);
 			currentIPindex++;
 		}
 	}
