@@ -28,12 +28,12 @@ void OSPFProcessPacket(gpacket_t *in_pkt)
         verbose(2, "[OSPFProcessPacket]:: OSPF processing for HELLO MSG");
         OSPFProcessHelloMsg(in_pkt);
         break;
-
+    /*
     case OSPF_LS_UPDATE:
         verbose(2, "[OSPFProcessPacket]:: OSPF processing for Link Status Update");
-        OSPFrocessLSUpdate(in_pkt);
+        OSPProcessLSUpdate(in_pkt);
         break;
-
+    */
     case OSPF_DBASE_DESCRIPTION:
     case OSPF_LS_REQUEST:
     case OSPF_STATUS_ACK:
