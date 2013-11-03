@@ -198,10 +198,12 @@ interface_t *findInterface(int indx)
  *
  *
  */
-int* getInterfaceIPs()
+int getInterfaceIPs(int* IParray)
 {
 	int i;
 	int numberOfInterfaces = 0;
+    int currentIPindex = 0;
+
 	for (i = 0; i < MAX_INTERFACES; i++)
 	{
 		if(netarray.elem[i] != NULL)
@@ -209,8 +211,7 @@ int* getInterfaceIPs()
 			numberOfInterfaces++;
 		}
 	}
-	int IParray[numberOfInterfaces];
-	int currentIPindex = 0;
+
 	for (i = 0; i < MAX_INTERFACES; i++)
 	{
 		if(netarray.elem[i] != NULL)
@@ -219,7 +220,7 @@ int* getInterfaceIPs()
 			currentIPindex++;
 		}
 	}
-	return IParray;
+	return numberOfInterfaces;
 }
 
 void printHorLine(int mode)

@@ -1,4 +1,4 @@
-typedef struct ospf_header_common{
+typedef struct ospfhdr_t{
 	//char version
 	char type;
 	short msg_length;
@@ -7,10 +7,10 @@ typedef struct ospf_header_common{
 	//short checksum;
 	//short authentication_type;
 	//int* authentication_array_start;
-} ospf_header_common; 
+} ospfhdr_t; 
 
 typedef struct ospf_hello{
-	ospf_header_common header;
+	ospfhdr_t header;
 	int network_mask;
 	short hello_interval;
 	char options;
@@ -32,7 +32,7 @@ typedef struct ospf_header_lsa{
 } ospf_header_lsa;
 
 typedef struct ospf_lsrequest{
-	ospf_header_common common_header;	
+	ospfhdr_t common_header;	
 	int ls_type;
 	int link_id;
 	int ad_router_ip;
@@ -45,10 +45,12 @@ typedef struct ospf_ad{
 } ospf_ad;
 
 typedef struct ospf_lsupdate{
-	ospf_header_common common_header;	
+	ospfhdr_t common_header;	
 	ospf_header_lsa lsa_header;
 	short num_links;
 	ospf_ad* ads;
 } ospf_lsupdate;
 
-
+void OSPFProcessPacket(gpacket_t *in_pkt);
+void OSPFProcessHelloMsg(gpacket_t *in_pkt);
+void OSPFProcessLSUpdate(gpacket_t *in_pkt);
