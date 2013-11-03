@@ -157,8 +157,8 @@ int getAllInterfaceIDs(int* InterfaceIDarray)
 	{
 		if(netarray.elem[i] != NULL)
 		{
-			InterfaceIDarray[currentIDindex] = (int)*(netarray.elem[i]->interface_id);
-			currentIPindex++;
+			InterfaceIDarray[currentIDindex] = netarray.elem[i]->interface_id;
+			currentIDindex++;
 		}
 	}
 	return numberOfInterfaces;
