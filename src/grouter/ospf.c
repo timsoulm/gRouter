@@ -65,31 +65,24 @@ void OSPFProcessPacket(gpacket_t *in_pkt)
 */
 
 /*
-int create_common_header(ospf_header_common* header,
-                         char type,
-                         short length)
-{
-    header-> type = type;
-    header-> msg_length = length;
-    header-> source_ip_addr = NULL; // ???
-}
 
 int create_lsa_header()
 {
 
 }
 */
-
-int create_hello_packet(ospf_hello* hello_packet,
-			int* neighbor_list_start)
+int create_hello_packet(ospf_hello_pkt* hello_packet,
+			int* neighbor_list_start, short pkt_length, int src_ip)
 {
+    hello_packet-> header.version = 2;
+    hello_packet-> header.msg_length = pkt_length;
+    hello_packet-> header.source_ip_addr = src_ip;
 	hello_packet-> network_mask = 0xFFFFFF00; //255.255.255.0
 	hello_packet-> hello_interval = 10; //10 seconds
 	hello_packet-> options = 0; //figure out later
 	hello_packet-> priority = 0; //0
 	hello_packet-> router_dead_interval = 40; //40 seconds
 	hello_packet-> neighbor_list_start = neighbor_list_start;
-
 }
 
 void *hello_message_thread(void *arg)
@@ -116,17 +109,19 @@ void OSPFSendHelloPacket()
     int* NeighborIPs;
     gpacket_t *out_pkt;
     ip_packet_t *ipkt;
-    ospf_hello *hello_packet;
-    int NumberOfInterfaces, PacketSize;
+    ospf_hello_packet *hello_packet;
+    int NumberOfInterfaces;
+    short PacketSize;
 
     out_pkt = (gpacket_t *) malloc(sizeof(gpacket_t));
     ipkt = (ip_packet_t *)(out_pkt->data.data);
     ipkt->ip_hdr_len = 5;
-    hello_packet = (ospf_hello *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
-    NeighborIPs = (int*) hello_packet + 44;
-    create_hello_packet(hello_packet, NeighborIPs);
+    hello_packet = (ospf_hello_pkt *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
+    NeighborIPs = (int*) ((uchar *)hello_packet + 44); // 44 is size of ospf hdr + subseguent entries till neighbour IP addresses start
     NumberOfInterfaces = getInterfaceIPs(NeighborIPs);
     //ip header+ospf header+ospf packet info+payload
+    PacketSize = (ipkt->ip_hdr_len)*4 + (hello_packet->ospf_hdr_len)*4 + sizeof(int)*NumberOfInterfaces;
+    create_hello_packet(hello_packet, NeighborIPs, PacketSize);
     PacketSize = (ipkt->ip_hdr_len)*4 + 24*4 + sizeof(int)*NumberOfInterfaces;
     IPBroadcastPacket(out_pkt, PacketSize, OSPF_PROTOCOL);
 

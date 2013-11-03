@@ -7,27 +7,27 @@
 #define OSPF_STATUS_ACK         5
 
 typedef struct ospfhdr_t{
-	//char version
+	char version;
 	char type;
 	short msg_length;
 	int source_ip_addr;
-	//int area_id;
-	//short checksum;
-	//short authentication_type;
-	//int* authentication_array_start;
-} ospfhdr_t; 
+	int area_id;
+	short checksum;
+	short authentication_type;
+	long authentication_array_start;
+} ospfhdr_t;
 
-typedef struct ospf_hello{
+typedef struct ospf_hello_pkt{
 	ospfhdr_t header;
 	int network_mask;
 	short hello_interval;
 	char options;
 	char priority;
 	int router_dead_interval;
-	//int desginated_router_ip;
-	//int desginated_router_backup;
+	int desginated_router_ip;
+	int desginated_router_backup_ip;
 	int* neighbor_list_start;
-} ospf_hello;
+} ospf_hello_pkt;
 
 typedef struct ospf_header_lsa{
 	short ls_age;
