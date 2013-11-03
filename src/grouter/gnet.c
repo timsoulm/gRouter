@@ -139,6 +139,31 @@ int getNextInterfaceID(void)
 	return nextid;
 }
 
+int getAllInterfaceIDs(int* InterfaceIDarray)
+{
+	int i;
+	int numberOfInterfaces = 0;
+    int currentIDindex = 0;
+
+	for (i = 0; i < MAX_INTERFACES; i++)
+	{
+		if(netarray.elem[i] != NULL)
+		{
+			numberOfInterfaces++;
+		}
+	}
+
+	for (i = 0; i < MAX_INTERFACES; i++)
+	{
+		if(netarray.elem[i] != NULL)
+		{
+			InterfaceIDarray[currentIDindex] = (int)*(netarray.elem[i]->interface_id);
+			currentIPindex++;
+		}
+	}
+	return numberOfInterfaces;
+}
+
 
 /*
  * insert the given interface into the Interface table

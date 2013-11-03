@@ -14,7 +14,6 @@
 #include "fragment.h"
 #include "packetcore.h"
 #include "gnet.h"
-#include "gnet.c"
 #include <stdlib.h>
 #include <slack/err.h>
 #include <netinet/in.h>
@@ -126,10 +125,14 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 	uchar iface_ip_addr[4];
 	int status;
 	uchar bcast_ip[] = IP_BCAST_ADDR;
+	int *interfaceIDs;
+	int numberOfInterfaces;
 
-	for(i=0;i<MAX_INTERFACES;i++)
+	numberOfInterfaces = getAllInterfaceIDs(InterfaceIDs);
+
+	for(i=0;i<numberOfInterfaces;i++)
 	{
-		if(netarray.elem[i]!=NULL)
+		if(interfaceIDs[i]!=NULL)
 		{
 			temp_pkt = duplicatePacket(pkt);
 			ip_pkt = (ip_packet_t *)temp_pkt->data.data;
@@ -149,7 +152,7 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 			COPY_IP(ip_pkt->ip_dst, gHtonl(tmpbuf, bcast_ip));  // might need to use gHtonl as in IPOutgoingPacket
 			ip_pkt->ip_pkt_len = htons(size + ip_pkt->ip_hdr_len * 4);
 
-			temp_pkt->frame.dst_interface = netarray.elem[i]->interface_id;
+			temp_pkt->frame.dst_interface = interfaceIDs[i];
 
 			verbose(2, "[IPOutgoingPacket]:: lookup MTU of nexthop");
 			// lookup the IP address of the destination interface..
