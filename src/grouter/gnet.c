@@ -200,7 +200,6 @@ interface_t *findInterface(int indx)
  */
 int* getInterfaceIPs()
 {
-	int i;
 	int numberOfInterfaces = 0;
 	for (i = 0; i < MAX_INTERFACES; i++)
 	{
@@ -815,7 +814,7 @@ void *GNETHandler(void *outq)
 				continue;
 			}
 		}
-		else if (in_pkt->frame.arp_bcast == TRUE)
+		else if (in_pkt->frame.arp_bcast == TRUE)//Can't do this, must do something else
 		{
 			COPY_MAC(in_pkt->data.header.dst, broadcastMACAddress);
 		}
