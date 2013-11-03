@@ -200,6 +200,7 @@ interface_t *findInterface(int indx)
  */
 int* getInterfaceIPs()
 {
+	int i;
 	int numberOfInterfaces = 0;
 	for (i = 0; i < MAX_INTERFACES; i++)
 	{

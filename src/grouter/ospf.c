@@ -8,6 +8,7 @@
 #include "message.h"
 #include "grouter.h"
 #include "gnet.h"
+#include "ip.h"
 #include <pthread.h>
 #include <sys/time.h>
 #include <stdio.h>

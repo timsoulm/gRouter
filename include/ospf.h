@@ -1,5 +1,5 @@
 typedef struct ospf_header_common{
-	//char version;
+	//char version
 	char type;
 	short msg_length;
 	int source_ip_addr;
