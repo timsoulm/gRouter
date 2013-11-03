@@ -126,6 +126,7 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 	uchar iface_ip_addr[4];
 	int status;
 	uchar broadcastAddress = {0xE0, 0x00, 0x00, 0x05};
+	uchar broadcastMACAddress = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 	for(i=0;i<MAX_INTERFACES;i++)
 	{
@@ -165,6 +166,8 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 			cksum = checksum((uchar *)ip_pkt, ip_pkt->ip_hdr_len*2);
 			ip_pkt->ip_cksum = htons(cksum);
 			temp_pkt->data.header.prot = htons(IP_PROTOCOL);
+
+			COPY_MAC(temp_pkt->data.header.dst, broadcastMACAddress);
 
 			IPSend2Output(temp_pkt);
 			verbose(2, "[IPOutgoingPacket]:: IP packet sent.. ");
