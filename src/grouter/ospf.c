@@ -6,7 +6,6 @@
  */
 
 #include "ospf.h"
-#include "message.h"
 #include "grouter.h"
 #include "gnet.h"
 #include "ip.h"
