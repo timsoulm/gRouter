@@ -118,14 +118,15 @@ void OSPFSendHelloPacket()
     int NumberOfInterfaces, PacketSize;
 
     out_pkt = (gpacket_t *) malloc(sizeof(gpacket_t));
-        ipkt = (ip_packet_t *)(out_pkt->data.data);
-        ipkt->ip_hdr_len = 5;
-        hello_packet = (ospf_hello *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
-        create_hello_packet(hello_packet, NeighborIPs);
-        NumberOfInterfaces = getInterfaceIPs(NeighborIPs);
-        //ip header+ospf header+ospf packet info+payload
-        PacketSize = (ipkt->ip_hdr_len)*4 + (hello_packet->ospf_hdr_len)*4 + sizeof(int)*NumberOfInterfaces;
-        IPBroadcastPacket(out_pkt, PacketSize, OSPF_PROTOCOL);
+    ipkt = (ip_packet_t *)(out_pkt->data.data);
+    ipkt->ip_hdr_len = 5;
+    hello_packet = (ospf_hello *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
+    NeighborIPs = (int*) hello_packet + 44;
+    create_hello_packet(hello_packet, NeighborIPs);
+    NumberOfInterfaces = getInterfaceIPs(NeighborIPs);
+    //ip header+ospf header+ospf packet info+payload
+    PacketSize = (ipkt->ip_hdr_len)*4 + (hello_packet->ospf_hdr_len)*4 + sizeof(int)*NumberOfInterfaces;
+    IPBroadcastPacket(out_pkt, PacketSize, OSPF_PROTOCOL);
 
 
 
