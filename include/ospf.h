@@ -1,3 +1,11 @@
+#include "message.h"
+
+#define OSPF_HELLO              1
+#define OSPF_DBASE_DESCRIPTION  2
+#define OSPF_LS_REQUEST         3
+#define OSPF_LS_UPDATE          4
+#define OSPF_STATUS_ACK         5
+
 typedef struct ospfhdr_t{
 	//char version
 	char type;
@@ -19,7 +27,7 @@ typedef struct ospf_hello{
 	//int desginated_router_ip;
 	//int desginated_router_backup;
 	int* neighbor_list_start;
-} ospf_header_hello;
+} ospf_hello;
 
 typedef struct ospf_header_lsa{
 	short ls_age;

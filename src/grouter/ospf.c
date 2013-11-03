@@ -41,7 +41,7 @@ void OSPFProcessPacket(gpacket_t *in_pkt)
     }
 }
 
-int create_ls_update()
+/*int create_ls_update()
 {
     ospf_lsupdate packet;
 
@@ -61,10 +61,10 @@ int create_ls_update()
             ads[i]->type = 3;
         }
     }
-
-
 }
+*/
 
+/*
 int create_common_header(ospf_header_common* header,
                          char type,
                          short length)
@@ -78,6 +78,7 @@ int create_lsa_header()
 {
 
 }
+*/
 
 int create_hello_packet(ospf_hello* hello_packet,
 			int* neighbor_list_start)
@@ -89,12 +90,6 @@ int create_hello_packet(ospf_hello* hello_packet,
 	hello_packet-> 40; //40 seconds
 	hello_packet-> neighbor_list_start = neighbor_list_start;
 
-}
-
-void ospf_init()
-{
-	pthread_t tid;
-	pthread_create(&tid, NULL, &hello_message_thread, NULL);
 }
 
 void *hello_message_thread(void *arg)
@@ -109,6 +104,13 @@ void *hello_message_thread(void *arg)
     }
     return 0;
 }
+
+void ospf_init()
+{
+	pthread_t tid;
+	pthread_create(&tid, NULL, &hello_message_thread, NULL);
+}
+
 void OSPFSendHelloPacket()
 {
     int* NeighborIPs;
