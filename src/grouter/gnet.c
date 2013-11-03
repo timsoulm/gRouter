@@ -778,6 +778,8 @@ void *GNETHandler(void *outq)
 	gpacket_t *in_pkt;
 	int inbytes, cached;
 	uchar broadcastMACAddress = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+	uchar broadcastAddress = {0xE0, 0x00, 0x00, 0x05};
+	ip_packet_t *ip_pkt;//Used to retrieve the destination IP address of incoming packet
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);       // die as soon as cancelled
 	while (1)
 	{
@@ -804,11 +806,13 @@ void *GNETHandler(void *outq)
 			putARPCache(in_pkt->frame.nxth_ip_addr, in_pkt->data.header.dst);
 		else if (in_pkt->frame.arp_bcast != TRUE)
 		{
+			ip_pkt = (ip_packet_t *)in_pkt->data.data;
 			if ((cached = lookupARPCache(in_pkt->frame.nxth_ip_addr,
 						     mac_addr)) == TRUE)
 				COPY_MAC(in_pkt->data.header.dst, mac_addr);
-			else if (in_pkt->data.header.dst == broadcastMACAddress) //If destination MAC is broadcast, then pass to interface
+			else if (ip_pkt->ip_dst == gHtonl(tmpbuf, broadcastAddress)) //If destination IP is broadcast, then write destination MAC
 			{
+				COPY_MAC(in_pkt->data.header.dst, broadcastMACAddress);
 				continue;
 			}
 			else

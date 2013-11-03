@@ -167,8 +167,6 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 			ip_pkt->ip_cksum = htons(cksum);
 			temp_pkt->data.header.prot = htons(IP_PROTOCOL);
 
-			COPY_MAC(temp_pkt->data.header.dst, broadcastMACAddress);
-
 			IPSend2Output(temp_pkt);
 			verbose(2, "[IPOutgoingPacket]:: IP packet sent.. ");
 		}
