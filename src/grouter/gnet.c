@@ -777,8 +777,8 @@ void *GNETHandler(void *outq)
 	simplequeue_t *outputQ = (simplequeue_t *)outq;
 	gpacket_t *in_pkt;
 	int inbytes, cached;
-	uchar broadcastMACAddress = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-	uchar broadcastAddress = {0xE0, 0x00, 0x00, 0x05};
+	uchar broadcastMACAddress[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+	uchar broadcastAddress[4] = {0xE0, 0x00, 0x00, 0x05};
 	ip_packet_t *ip_pkt;//Used to retrieve the destination IP address of incoming packet
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);       // die as soon as cancelled
 	while (1)
