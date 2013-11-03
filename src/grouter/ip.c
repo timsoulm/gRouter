@@ -13,6 +13,8 @@
 #include "ip.h"
 #include "fragment.h"
 #include "packetcore.h"
+#include "gnet.h"
+#include "gnet.c"
 #include <stdlib.h>
 #include <slack/err.h>
 #include <netinet/in.h>
@@ -29,7 +31,6 @@ void IPInit()
 	MTUTableInit(MTU_tbl);
 }
 
-
 /*
  * IPIncomingPacket: Process incoming IP packet.
  * The IP packet can be destined to the local router (for example route updates).
@@ -41,7 +42,7 @@ void IPIncomingPacket(gpacket_t *in_pkt)
 {
 	char tmpbuf[MAX_TMPBUF_LEN];
 	// get a pointer to the IP packet
-    ip_packet_t *ip_pkt = (ip_packet_t *)&in_pkt->data.data;
+        ip_packet_t *ip_pkt = (ip_packet_t *)&in_pkt->data.data;
 	uchar bcast_ip[] = IP_BCAST_ADDR;
 
 	// Is this IP packet for me??
@@ -101,20 +102,64 @@ int IPCheckPacket4Me(gpacket_t *in_pkt)
  * TODO: broadcast not yet implemented.. should be simple to implement.
  * read RFC 1812 and 922 ...
  */
-int IPProcessBcastPacket(gpacket_t *in_pkt)
+int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 {
-    ip_packet_t *ip_pkt = (ip_packet_t *)in_pkt->data.data;
-
-	if (IPVerifyPacket(ip_pkt) == EXIT_SUCCESS)
+	int i;
+	gpacket_t *temp_pkt;
+	ip_packet_t *ip_pkt;
+	ushort cksum;
+	char tmpbuf[MAX_TMPBUF_LEN];
+	uchar iface_ip_addr[4];
+	int status;
+	uchar broadcastAddress = {0xE0, 0x00, 0x00, 0x05};
+	
+	for(i=0;i<MAX_INTERFACES;i++)
 	{
-        if (ip_pkt->ip_prot == OSPF_PROTOCOL) {
-            OSPFProcessPacket(in_pkt);
-            return EXIT_SUCCESS;
-        }
-	}
-	return EXIT_FAILURE;
-}
+		if(netarray.elem[i]!=NULL)
+		{
+			temp_pkt = duplicatePacket(pkt);
+			ip_pkt = (ip_packet_t *)temp_pkt->data.data;
 
+			ip_pkt->ip_ttl = 64;                        // set TTL to default value
+			ip_pkt->ip_cksum = 0;                       // reset the checksum field
+			ip_pkt->ip_prot = src_prot;  // set the protocol field
+	
+			ip_pkt->ip_version = 4;
+			ip_pkt->ip_hdr_len = 5;
+			ip_pkt->ip_tos = 0;
+			ip_pkt->ip_identifier = IP_OFFMASK & random();
+			RESET_DF_BITS(ip_pkt->ip_frag_off);
+			RESET_MF_BITS(ip_pkt->ip_frag_off);
+			ip_pkt->ip_frag_off = 0;
+	
+			COPY_IP(ip_pkt->ip_dst, gHtonl(tmpbuf, broadcastAddress));  // might need to use gHtonl as in IPOutgoingPacket
+			ip_pkt->ip_pkt_len = htons(size + ip_pkt->ip_hdr_len * 4);
+			
+			temp_pkt->frame.dst_interface = netarray.elem[i];
+			
+			verbose(2, "[IPOutgoingPacket]:: lookup MTU of nexthop");
+			// lookup the IP address of the destination interface..
+			if ((status = findInterfaceIP(MTU_tbl, temp_pkt->frame.dst_interface,
+						      iface_ip_addr)) == EXIT_FAILURE)
+						      return EXIT_FAILURE;
+			// the outgoing packet should have the interface IP as source
+			COPY_IP(ip_pkt->ip_src, gHtonl(tmpbuf, iface_ip_addr));
+			verbose(2, "[IPOutgoingPacket]:: almost one processing the IP header.");
+			
+			
+			//	compute the new checksum
+			cksum = checksum((uchar *)ip_pkt, ip_pkt->ip_hdr_len*2);
+			ip_pkt->ip_cksum = htons(cksum);
+			temp_pkt->data.header.prot = htons(IP_PROTOCOL);
+			
+			IPSend2Output(temp_pkt);
+			verbose(2, "[IPOutgoingPacket]:: IP packet sent.. ");
+		}
+	}
+    
+	verbose(2, "[IPOutgoingPacket]:: IP packets broadcasted.. ");
+	return EXIT_SUCCESS;
+}
 
 
 /*
