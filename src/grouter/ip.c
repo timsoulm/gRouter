@@ -126,7 +126,6 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 	uchar iface_ip_addr[4];
 	int status;
 	uchar broadcastAddress = {0xE0, 0x00, 0x00, 0x05};
-	uchar broadcastMACAddress = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 	for(i=0;i<MAX_INTERFACES;i++)
 	{
