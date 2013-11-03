@@ -38,17 +38,17 @@ typedef struct ospf_lsrequest{
 	int ad_router_ip;
 } ospf_lsrequest;
 
-typedef struct ospf_ad{
-	int link_id;
-	int local_data;
-	char link_type;
-} ospf_ad;
-
 typedef struct ospf_lsupdate{
 	ospf_header_common common_header;	
 	ospf_header_lsa lsa_header;
 	short num_links;
 	ospf_ad* ads;
 } ospf_lsupdate;
+
+typedef struct ospf_ad{
+	int link_id;
+	int local_data;
+	char link_type;
+} ospf_ad;
 
 
