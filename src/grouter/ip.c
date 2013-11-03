@@ -125,7 +125,7 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 	char tmpbuf[MAX_TMPBUF_LEN];
 	uchar iface_ip_addr[4];
 	int status;
-	uchar broadcastAddress = {0xE0, 0x00, 0x00, 0x05};
+	uchar bcast_ip[] = IP_BCAST_ADDR;
 
 	for(i=0;i<MAX_INTERFACES;i++)
 	{
@@ -146,7 +146,7 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 			RESET_MF_BITS(ip_pkt->ip_frag_off);
 			ip_pkt->ip_frag_off = 0;
 
-			COPY_IP(ip_pkt->ip_dst, gHtonl(tmpbuf, broadcastAddress));  // might need to use gHtonl as in IPOutgoingPacket
+			COPY_IP(ip_pkt->ip_dst, gHtonl(tmpbuf, bcast_ip));  // might need to use gHtonl as in IPOutgoingPacket
 			ip_pkt->ip_pkt_len = htons(size + ip_pkt->ip_hdr_len * 4);
 
 			temp_pkt->frame.dst_interface = netarray.elem[i];

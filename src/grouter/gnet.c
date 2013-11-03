@@ -778,8 +778,8 @@ void *GNETHandler(void *outq)
 	simplequeue_t *outputQ = (simplequeue_t *)outq;
 	gpacket_t *in_pkt;
 	int inbytes, cached;
-	uchar broadcastMACAddress[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-	uchar broadcastAddress[4] = {0xE0, 0x00, 0x00, 0x05};
+	uchar bcast_mac[] = MAC_BCAST_ADDR;
+	uchar bcast_ip[] = IP_BCAST_ADDR;
 	ip_packet_t *ip_pkt;//Used to retrieve the destination IP address of incoming packet
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);       // die as soon as cancelled
 	while (1)
@@ -811,9 +811,9 @@ void *GNETHandler(void *outq)
 			if ((cached = lookupARPCache(in_pkt->frame.nxth_ip_addr,
 						     mac_addr)) == TRUE)
 				COPY_MAC(in_pkt->data.header.dst, mac_addr);
-			else if (ip_pkt->ip_dst == gHtonl(tmpbuf, broadcastAddress)) //If destination IP is broadcast, then write destination MAC
+			else if (COMPARE_IP(ip_pkt->ip_dst, bcast_ip)) //If destination IP is broadcast, then write destination MAC
 			{
-				COPY_MAC(in_pkt->data.header.dst, broadcastMACAddress);
+				COPY_MAC(in_pkt->data.header.dst, bcast_mac);
 				continue;
 			}
 			else
