@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="SharedProgAssign1" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/SharedProgAssign1" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/SharedProgAssign1" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="include/arp.h" />
+		<Unit filename="include/classifier.h" />
+		<Unit filename="include/classspec.h" />
+		<Unit filename="include/cli.h" />
+		<Unit filename="include/device.h" />
+		<Unit filename="include/devicedefs.h" />
+		<Unit filename="include/ethernet.h" />
+		<Unit filename="include/filter.h" />
+		<Unit filename="include/fragment.h" />
+		<Unit filename="include/gnet.h" />
+		<Unit filename="include/gpcap.h" />
+		<Unit filename="include/grouter.h" />
+		<Unit filename="include/helpdefs.h" />
+		<Unit filename="include/icmp.h" />
+		<Unit filename="include/info.h" />
+		<Unit filename="include/ip.h" />
+		<Unit filename="include/layer.h" />
+		<Unit filename="include/message.h" />
+		<Unit filename="include/moduledefs.h" />
+		<Unit filename="include/msgqueue.h" />
+		<Unit filename="include/mtu.h" />
+		<Unit filename="include/packetcore.h" />
+		<Unit filename="include/protocols.h" />
+		<Unit filename="include/qdisc.h" />
+		<Unit filename="include/routetable.h" />
+		<Unit filename="include/simplequeue.h" />
+		<Unit filename="include/tap.h" />
+		<Unit filename="include/tapio.h" />
+		<Unit filename="include/vpl.h" />
+		<Unit filename="src/grouter/arp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/classifier.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/cli.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/console.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/ethernet.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/filter.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/fragment.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/gnet.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/grouter.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/icmp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/info.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/ip.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/message.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/mtu.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/ospf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/ospf.h" />
+		<Unit filename="src/grouter/packetcore.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/qdisc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/roundrobin.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/routetable.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/simplequeue.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/tap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/tapio.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/utils.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/vpl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/wfq.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
