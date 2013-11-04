@@ -121,8 +121,8 @@ void ospf_init()
     }
 
 
-	pthread_t tid;
-	pthread_create(&tid, NULL, &hello_message_thread, NULL);
+	//pthread_t tid;
+	//pthread_create(&tid, NULL, &hello_message_thread, NULL);
 }
 
 void OSPFSendHelloPacket(void)
