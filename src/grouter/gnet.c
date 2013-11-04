@@ -139,7 +139,7 @@ int getNextInterfaceID(void)
 	return nextid;
 }
 
-int getAllInterfaceIDs(int* InterfaceIDarray)
+int getInterfaceIDsandIPs(int *InterfaceIDarray, int *InterfaceIParray)
 {
 	int i;
 	int numberOfInterfaces = 0;
@@ -158,6 +158,7 @@ int getAllInterfaceIDs(int* InterfaceIDarray)
 		if(netarray.elem[i] != NULL)
 		{
 			InterfaceIDarray[currentIDindex] = netarray.elem[i]->interface_id;
+			InterfaceIParray[currentIDindex] = netarray.elem[i]->ip_addr;
 			currentIDindex++;
 		}
 	}
@@ -216,36 +217,6 @@ int deleteInterface(int indx)
 interface_t *findInterface(int indx)
 {
 	return netarray.elem[indx];
-}
-
-/*
- * return all interface IPs
- *
- *
- */
-int getInterfaceIPs(int* IParray)
-{
-	int i;
-	int numberOfInterfaces = 0;
-    int currentIPindex = 0;
-
-	for (i = 0; i < MAX_INTERFACES; i++)
-	{
-		if(netarray.elem[i] != NULL)
-		{
-			numberOfInterfaces++;
-		}
-	}
-
-	for (i = 0; i < MAX_INTERFACES; i++)
-	{
-		if(netarray.elem[i] != NULL)
-		{
-			IParray[currentIPindex] = (int)*(netarray.elem[i]->ip_addr);
-			currentIPindex++;
-		}
-	}
-	return numberOfInterfaces;
 }
 
 void printHorLine(int mode)

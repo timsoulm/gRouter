@@ -15,6 +15,9 @@
 #include <stdio.h>
 #include <string.h>
 
+ospf_neighbor_t *neighbor_list_head = NULL;
+
+
 void OSPFProcessPacket(gpacket_t *in_pkt)
 {
     ip_packet_t *ip_pkt = (ip_packet_t *)in_pkt->data.data;
@@ -71,8 +74,7 @@ int create_lsa_header()
 
 }
 */
-int create_hello_packet(ospf_hello_pkt* hello_packet,
-			int* neighbor_list_start, short pkt_length, int src_ip)
+int create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length, int src_ip)
 {
     hello_packet-> header.version = 2;
     hello_packet-> header.msg_length = pkt_length;
@@ -82,7 +84,6 @@ int create_hello_packet(ospf_hello_pkt* hello_packet,
 	hello_packet-> options = 0; //figure out later
 	hello_packet-> priority = 0; //0
 	hello_packet-> router_dead_interval = 40; //40 seconds
-	hello_packet-> neighbor_list_start = neighbor_list_start;
 }
 
 void *hello_message_thread(void *arg)
@@ -100,6 +101,26 @@ void *hello_message_thread(void *arg)
 
 void ospf_init()
 {
+    int i;
+    int NumberOfInterfaces;
+    int *NeighborIDs;
+    int *NeighborIPs;
+    ospf_neighbor_t *neighbor;
+
+    NumberOfInterfaces = getInterfaceIDsandIPs(NeighborIDs,NeighborIPs);
+
+    for(i=0;i<NumberOfInterfaces;i++)
+    {
+        neighbor = (ospf_neighbor_t *) malloc(sizeof(ospf_neighbor_t));
+        neighbor->interface_id = NeighborIDs[i];
+        neighbor->source_ip = NeighborIPs[i];
+        neighbor->alive = 0;
+
+        neighbor->next = neighbor_list_head;
+        neighbor_list_head = neighbor;
+    }
+
+
 	pthread_t tid;
 	pthread_create(&tid, NULL, &hello_message_thread, NULL);
 }
@@ -109,27 +130,59 @@ void OSPFSendHelloPacket()
     int* NeighborIPs;
     gpacket_t *out_pkt;
     ip_packet_t *ipkt;
-    ospf_hello_packet *hello_packet;
-    int NumberOfInterfaces;
+    ospf_hello_pkt *hello_packet;
     short PacketSize;
+    ospf_neighbor_t *curr;
+    int NumberOfKnownNeighbours;
 
-    out_pkt = (gpacket_t *) malloc(sizeof(gpacket_t));
-    ipkt = (ip_packet_t *)(out_pkt->data.data);
-    ipkt->ip_hdr_len = 5;
-    hello_packet = (ospf_hello_pkt *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
-    NeighborIPs = (int*) ((uchar *)hello_packet + 44); // 44 is size of ospf hdr + subseguent entries till neighbour IP addresses start
-    NumberOfInterfaces = getInterfaceIPs(NeighborIPs);
+    
     //ip header+ospf header+ospf packet info+payload
-    PacketSize = (ipkt->ip_hdr_len)*4 + (hello_packet->ospf_hdr_len)*4 + sizeof(int)*NumberOfInterfaces;
-    create_hello_packet(hello_packet, NeighborIPs, PacketSize);
-    PacketSize = (ipkt->ip_hdr_len)*4 + 24*4 + sizeof(int)*NumberOfInterfaces;
-    IPBroadcastPacket(out_pkt, PacketSize, OSPF_PROTOCOL);
+
+    NumberOfKnownNeighbours = 0;
+    for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
+    {
+        if(curr->alive == 1)
+        {
+            NeighborIPs[NumberOfKnownNeighbours] = curr->destination_ip;
+            NumberOfKnownNeighbours++;
+        }
+        
+        curr = curr->next;
+    }
+    PacketSize = 44 + sizeof(int)*NumberOfKnownNeighbours;
 
 
+    for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
+    {
+        out_pkt = (gpacket_t *) malloc(sizeof(gpacket_t));
+        ipkt = (ip_packet_t *)(out_pkt->data.data);
+        ipkt->ip_hdr_len = 5;
+        hello_packet = (ospf_hello_pkt *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
+
+        NeighborIPs = (int*)(uchar*)hello_packet+44;
+
+        create_hello_packet(hello_packet, NeighborIPs, PacketSize, curr->source_ip);
+        IPOutgoingPacket(out_pkt, IP_BCAST_ADDR, PacketSize, 1, OSPF_PROTOCOL);
+    }
 
 }
 void OSPFProcessHelloMsg(gpacket_t *in_pkt)
 {
-
+    ospf_neighbor_t *curr;
+    for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
+    {
+        if(curr->interface_id == in_pkt->frame.src_interface)
+        {
+            curr->destination_ip = in_pkt->frame.src_ip_addr;
+            if(curr->alive)
+            {
+                //reset_timer();
+            } else {
+                curr->alive = 1; //TODO: reset timer once we have one
+                //start_timer();
+            }
+            break;
+        }
+    }
 }
 

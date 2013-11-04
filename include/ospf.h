@@ -17,6 +17,14 @@ typedef struct ospfhdr_t{
 	long authentication_array_start;
 } ospfhdr_t;
 
+typedef struct ospf_neighbor_t{
+	int source_ip;
+	int destination_ip;
+	int interface_id;
+	int alive;
+	ospf_neighbor_t *next;
+} ospf_neighbor_t;
+
 typedef struct ospf_hello_pkt{
 	ospfhdr_t header;
 	int network_mask;
@@ -26,7 +34,6 @@ typedef struct ospf_hello_pkt{
 	int router_dead_interval;
 	int desginated_router_ip;
 	int desginated_router_backup_ip;
-	int* neighbor_list_start;
 } ospf_hello_pkt;
 
 typedef struct ospf_header_lsa{
