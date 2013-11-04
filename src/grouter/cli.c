@@ -26,7 +26,7 @@
 #include "filter.h"
 #include "classspec.h"
 #include "packetcore.h"
-#include "ospf.h"
+//#include "ospf.h"
 #include <slack/err.h>
 #include <slack/std.h>
 #include <slack/prog.h>
