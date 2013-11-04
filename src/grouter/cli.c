@@ -104,7 +104,7 @@ int CLIInit(router_config *rarg)
 		rl_instream = stdin;
 	}
 
-	ospf_init();
+	//ospf_init();
 
 	if (rarg->cli_flag != 0)
 		stat = pthread_create((pthread_t *)(&(rarg->clihandler)), NULL, CLIProcessCmdsInteractive, (void *)stdin);
