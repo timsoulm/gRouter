@@ -92,16 +92,15 @@ void *hello_message_thread(void *arg)
 
     while(1)
     {
+        sleep(10);
         OSPFSendHelloPacket();
         //wait for 10 seconds before going again
-        sleep(10);
     }
     return 0;
 }
 
 void ospf_init()
 {
-    sleep(10);
     verbose(2, "opsf_init starting");
     int i;
     int NumberOfInterfaces;
