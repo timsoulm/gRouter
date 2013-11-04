@@ -115,6 +115,7 @@ int IPProcessBcastPacket(gpacket_t *in_pkt)
  * TODO: broadcast not yet implemented.. should be simple to implement.
  * read RFC 1812 and 922 ...
  */
+ /*
 int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 {
 	int i;
@@ -126,9 +127,10 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 	int status;
 	uchar bcast_ip[] = IP_BCAST_ADDR;
 	int *interfaceIDs;
+	int *interfaceIPs;
 	int numberOfInterfaces;
 
-	numberOfInterfaces = getAllInterfaceIDs(interfaceIDs);
+	numberOfInterfaces = getAllInterfaceIDs(interfaceIDs,interfaceIPs);
 
 	for(i=0;i<numberOfInterfaces;i++)
 	{
@@ -174,7 +176,7 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 	verbose(2, "[IPOutgoingPacket]:: IP packets broadcasted.. ");
 	return EXIT_SUCCESS;
 }
-
+*/
 
 /*
  * process an IP packet destined to someone else...
