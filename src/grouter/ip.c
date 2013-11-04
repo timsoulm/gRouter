@@ -130,7 +130,7 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 	int *interfaceIPs;
 	int numberOfInterfaces;
 
-	numberOfInterfaces = getAllInterfaceIDsandIPs(&interfaceIDs,&interfaceIPs);
+	numberOfInterfaces = getInterfaceIDsandIPs(&interfaceIDs,&interfaceIPs);
 
 	for(i=0;i<numberOfInterfaces;i++)
 	{
