@@ -17,13 +17,15 @@ typedef struct ospfhdr_t{
 	long authentication_array_start;
 } ospfhdr_t;
 
-typedef struct ospf_neighbor_t{
+struct ospf_neighbor_i{
 	int source_ip;
 	int destination_ip;
 	int interface_id;
 	int alive;
-	ospf_neighbor_t *next;
-} ospf_neighbor_t;
+	ospf_neighbor_i *next;
+};
+
+typedef struct ospf_neighbor_i ospf_neighbor_t;
 
 typedef struct ospf_hello_pkt{
 	ospfhdr_t header;

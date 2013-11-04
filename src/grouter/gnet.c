@@ -158,7 +158,7 @@ int getInterfaceIDsandIPs(int *InterfaceIDarray, int *InterfaceIParray)
 		if(netarray.elem[i] != NULL)
 		{
 			InterfaceIDarray[currentIDindex] = netarray.elem[i]->interface_id;
-			InterfaceIParray[currentIDindex] = netarray.elem[i]->ip_addr;
+			InterfaceIParray[currentIDindex] = (int)*(netarray.elem[i]->ip_addr);
 			currentIDindex++;
 		}
 	}
