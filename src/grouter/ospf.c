@@ -102,6 +102,7 @@ void *hello_message_thread(void *arg)
 void ospf_init()
 {
     sleep(10);
+    verbose(2, "opsf_init starting");
     int i;
     int NumberOfInterfaces;
     int *NeighborIDs;
