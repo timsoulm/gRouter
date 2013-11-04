@@ -39,26 +39,29 @@ void IPInit()
  */
 void IPIncomingPacket(gpacket_t *in_pkt)
 {
+	int vlevel;
 	char tmpbuf[MAX_TMPBUF_LEN];
 	// get a pointer to the IP packet
         ip_packet_t *ip_pkt = (ip_packet_t *)&in_pkt->data.data;
 	uchar bcast_ip[] = IP_BCAST_ADDR;
-
+	
 	// Is this IP packet for me??
 	if (IPCheckPacket4Me(in_pkt))
 	{
-		verbose(2, "[IPIncomingPacket]:: got IP packet destined to this router");
+		verbose(1, "[IPIncomingPacket]:: got IP packet destined to this router");
 		IPProcessMyPacket(in_pkt);
 	} else if (COMPARE_IP(gNtohl(tmpbuf, ip_pkt->ip_dst), bcast_ip) == 0)
 	{
 		// TODO: rudimentary 'broadcast IP address' check
-		verbose(2, "[IPIncomingPacket]:: not repeat broadcast (final destination %s), packet thrown",
+		verbose(1, "[IPIncomingPacket]:: not repeat broadcast (final destination %s), packet thrown",
 		       IP2Dot(tmpbuf, gNtohl((tmpbuf+20), ip_pkt->ip_dst)));
+		vlevel = prog_verbosity_level();
+		printGPacket(in_pkt, vlevel, "IP_ROUTINE");
 		IPProcessBcastPacket(in_pkt);
 	} else
 	{
 		// Destinated to someone else
-		verbose(2, "[IPIncomingPacket]:: got IP packet destined to someone else");
+		verbose(1, "[IPIncomingPacket]:: got IP packet destined to someone else");
 		IPProcessForwardingPacket(in_pkt);
 	}
 }
@@ -419,6 +422,7 @@ int IPOutgoingPacket(gpacket_t *pkt, uchar *dst_ip, int size, int newflag, int s
 	char tmpbuf[MAX_TMPBUF_LEN];
 	uchar iface_ip_addr[4];
 	int status;
+	uchar bcast_ip[] = IP_BCAST_ADDR;
 
 
 	ip_pkt->ip_ttl = 64;                        // set TTL to default value
@@ -451,13 +455,18 @@ int IPOutgoingPacket(gpacket_t *pkt, uchar *dst_ip, int size, int newflag, int s
 		COPY_IP(ip_pkt->ip_dst, gHtonl(tmpbuf, dst_ip));
 		ip_pkt->ip_pkt_len = htons(size + ip_pkt->ip_hdr_len * 4);
 
-		verbose(2, "[IPOutgoingPacket]:: lookup next hop ");
-		// find the nexthop and interface and fill them in the "meta" frame
-		// NOTE: the packet itself is not modified by this lookup!
-		if (findRouteEntry(route_tbl, gNtohl(tmpbuf, ip_pkt->ip_dst),
-				   pkt->frame.nxth_ip_addr, &(pkt->frame.dst_interface)) == EXIT_FAILURE)
-				   return EXIT_FAILURE;
-
+		// if we are broadcasting skip the nexthop lookup
+		//printRouteTable(route_tbl);
+		if( COMPARE_IP(gNtohl(tmpbuf, ip_pkt->ip_dst), bcast_ip) == 0 )
+		{
+			verbose(1,"broadcast packet, destination interface already filled in");
+		} else {
+			// find the nexthop and interface and fill them in the "meta" frame
+			// NOTE: the packet itself is not modified by this lookup!
+			if (findRouteEntry(route_tbl, gNtohl(tmpbuf, ip_pkt->ip_dst),
+			   pkt->frame.nxth_ip_addr, &(pkt->frame.dst_interface)) == EXIT_FAILURE)
+			   return EXIT_FAILURE;
+		}
 		verbose(2, "[IPOutgoingPacket]:: lookup MTU of nexthop");
 		// lookup the IP address of the destination interface..
 		if ((status = findInterfaceIP(MTU_tbl, pkt->frame.dst_interface,
@@ -465,6 +474,8 @@ int IPOutgoingPacket(gpacket_t *pkt, uchar *dst_ip, int size, int newflag, int s
 					      return EXIT_FAILURE;
 		// the outgoing packet should have the interface IP as source
 		COPY_IP(ip_pkt->ip_src, gHtonl(tmpbuf, iface_ip_addr));
+		if( COMPARE_IP(gNtohl(tmpbuf, ip_pkt->ip_dst), bcast_ip) == 0 )
+			COPY_IP(pkt->frame.nxth_ip_addr, iface_ip_addr);
 		verbose(2, "[IPOutgoingPacket]:: almost one processing the IP header.");
 	} else
 	{
@@ -476,9 +487,8 @@ int IPOutgoingPacket(gpacket_t *pkt, uchar *dst_ip, int size, int newflag, int s
 	cksum = checksum((uchar *)ip_pkt, ip_pkt->ip_hdr_len*2);
 	ip_pkt->ip_cksum = htons(cksum);
 	pkt->data.header.prot = htons(IP_PROTOCOL);
-
 	IPSend2Output(pkt);
-	verbose(2, "[IPOutgoingPacket]:: IP packet sent to output queue.. ");
+	verbose(1, "[IPOutgoingPacket]:: IP packet sent to output queue.. ");
 	return EXIT_SUCCESS;
 }
 

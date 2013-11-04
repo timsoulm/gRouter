@@ -818,7 +818,6 @@ void *GNETHandler(void *outq)
 			else if (COMPARE_IP(ip_pkt->ip_dst, bcast_ip)) //If destination IP is broadcast, then write destination MAC
 			{
 				COPY_MAC(in_pkt->data.header.dst, bcast_mac);
-				continue;
 			}
 			else
 			{

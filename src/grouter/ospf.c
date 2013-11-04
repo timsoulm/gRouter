@@ -77,6 +77,7 @@ int create_lsa_header()
 void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length, int src_ip)
 {
     hello_packet-> header.version = 2;
+    
     hello_packet-> header.msg_length = pkt_length;
     hello_packet-> header.source_ip_addr = src_ip;
 	hello_packet-> network_mask = 0xFFFFFF00; //255.255.255.0
@@ -89,12 +90,12 @@ void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length, int src
 void *hello_message_thread(void *arg)
 {
 
-
-    //while()
-    //{
+    sleep(20);
+    while(1)
+    {
         OSPFSendHelloPacket();
-        //wait for 10 seconds before going again
-    //}
+        sleep(5);
+    }
     return 0;
 }
 
@@ -109,7 +110,7 @@ void ospf_init()
 
     NumberOfInterfaces = getInterfaceIDsandIPs(&NeighborIDs,&NeighborIPs);
     verbose(1, "number of interfaces: %d",NumberOfInterfaces);
-    /*
+    
     for(i=0;i<NumberOfInterfaces;i++)
     {
         neighbor = (ospf_neighbor_t *) malloc(sizeof(ospf_neighbor_t));
@@ -120,10 +121,10 @@ void ospf_init()
         neighbor->next = neighbor_list_head;
         neighbor_list_head = neighbor;
     }
-    */
+    
 
-	//pthread_t tid;
-	//pthread_create(&tid, NULL, &hello_message_thread, NULL);
+	pthread_t tid;
+	pthread_create(&tid, NULL, &hello_message_thread, NULL);
 }
 
 void OSPFSendHelloPacket(void)
@@ -137,7 +138,10 @@ void OSPFSendHelloPacket(void)
     int NumberOfKnownNeighbours;
     int status;
     uchar bcast_ip[] = IP_BCAST_ADDR;
-
+    int broadcast_int;
+    uchar IPasCharArray[4];
+    
+    verbose(1, "send hello packet starting");
     
     //ip header+ospf header+ospf packet info+payload
 
@@ -154,17 +158,22 @@ void OSPFSendHelloPacket(void)
     }
     PacketSize = 44 + sizeof(int)*NumberOfKnownNeighbours;
 
+    verbose(1,"list head interface id %d",neighbor_list_head->interface_id);
 
     for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
-    {
+    {	
+	verbose(1, "GOT HERE");
         out_pkt = (gpacket_t *) malloc(sizeof(gpacket_t));
         ipkt = (ip_packet_t *)(out_pkt->data.data);
         ipkt->ip_hdr_len = 5;
+	out_pkt->frame.dst_interface = curr->interface_id;
+
         hello_packet = (ospf_hello_pkt *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
 
         NeighborIPs = (int*)(uchar*)hello_packet+44;
-
+	
         create_hello_packet(hello_packet, PacketSize, curr->source_ip);
+	verbose(1, "sending to broadcast ip address: %u", bcast_ip[0]);
         status = IPOutgoingPacket(out_pkt, bcast_ip, PacketSize, 1, OSPF_PROTOCOL);
     }
 
