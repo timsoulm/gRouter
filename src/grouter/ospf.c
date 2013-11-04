@@ -125,7 +125,7 @@ void ospf_init()
 	pthread_create(&tid, NULL, &hello_message_thread, NULL);
 }
 
-void OSPFSendHelloPacket()
+void OSPFSendHelloPacket(void)
 {
     int* NeighborIPs;
     gpacket_t *out_pkt;
@@ -161,7 +161,7 @@ void OSPFSendHelloPacket()
 
         NeighborIPs = (int*)(uchar*)hello_packet+44;
 
-        create_hello_packet(hello_packet, NeighborIPs, PacketSize, curr->source_ip);
+        create_hello_packet(hello_packet, PacketSize, curr->source_ip);
         IPOutgoingPacket(out_pkt, IP_BCAST_ADDR, PacketSize, 1, OSPF_PROTOCOL);
     }
 
