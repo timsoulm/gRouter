@@ -74,7 +74,7 @@ int create_lsa_header()
 
 }
 */
-int create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length, int src_ip)
+void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length, int src_ip)
 {
     hello_packet-> header.version = 2;
     hello_packet-> header.msg_length = pkt_length;
@@ -134,6 +134,7 @@ void OSPFSendHelloPacket(void)
     short PacketSize;
     ospf_neighbor_t *curr;
     int NumberOfKnownNeighbours;
+    int status;
 
     
     //ip header+ospf header+ospf packet info+payload
@@ -162,7 +163,7 @@ void OSPFSendHelloPacket(void)
         NeighborIPs = (int*)(uchar*)hello_packet+44;
 
         create_hello_packet(hello_packet, PacketSize, curr->source_ip);
-        IPOutgoingPacket(out_pkt, IP_BCAST_ADDR, PacketSize, 1, OSPF_PROTOCOL);
+        status = IPOutgoingPacket(out_pkt, IP_BCAST_ADDR, PacketSize, 1, OSPF_PROTOCOL);
     }
 
 }
