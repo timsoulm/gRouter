@@ -139,11 +139,12 @@ int getNextInterfaceID(void)
 	return nextid;
 }
 
-int getInterfaceIDsandIPs(int *InterfaceIDarray, int *InterfaceIParray)
+int getInterfaceIDsandIPs(int **InterfaceIDarray, int **InterfaceIParray)
 {
 	int i;
 	int numberOfInterfaces = 0;
     int currentIDindex = 0;
+    int *tmp1, *tmp2;
 
 	for (i = 0; i < MAX_INTERFACES; i++)
 	{
@@ -152,19 +153,22 @@ int getInterfaceIDsandIPs(int *InterfaceIDarray, int *InterfaceIParray)
 			numberOfInterfaces++;
 		}
 	}
-	InterfaceIDarray = (int*)malloc(sizeof(int)*numberOfInterfaces);
-	InterfaceIParray = (int*)malloc(sizeof(int)*numberOfInterfaces);
+	tmp1 = (int*)malloc(sizeof(int)*numberOfInterfaces);
+	tmp2 = (int*)malloc(sizeof(int)*numberOfInterfaces);
 
 
 	for (i = 0; i < MAX_INTERFACES; i++)
 	{
 		if(netarray.elem[i] != NULL)
 		{
-			InterfaceIDarray[currentIDindex] = netarray.elem[i]->interface_id;
-			InterfaceIParray[currentIDindex] = (int)*(netarray.elem[i]->ip_addr);
+			tmp1[currentIDindex] = netarray.elem[i]->interface_id;
+			COPY_IP((char*)&tmp2[currentIDindex],(netarray.elem[i]->ip_addr));
 			currentIDindex++;
 		}
 	}
+
+	*InterfaceIDarray = tmp1;
+	*InterfaceIParray = tmp2;
 	return numberOfInterfaces;
 }
 

@@ -107,7 +107,7 @@ void ospf_init()
     int *NeighborIPs;
     ospf_neighbor_t *neighbor;
 
-    NumberOfInterfaces = getInterfaceIDsandIPs(NeighborIDs,NeighborIPs);
+    NumberOfInterfaces = getInterfaceIDsandIPs(&NeighborIDs,&NeighborIPs);
     verbose(1, "number of interfaces: %d",NumberOfInterfaces);
     /*
     for(i=0;i<NumberOfInterfaces;i++)
