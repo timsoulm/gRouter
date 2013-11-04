@@ -72,3 +72,4 @@ void OSPFProcessPacket(gpacket_t *in_pkt);
 void OSPFProcessHelloMsg(gpacket_t *in_pkt);
 void OSPFProcessLSUpdate(gpacket_t *in_pkt);
 void OSPFSendHelloPacket(void);
+void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length, int src_ip);

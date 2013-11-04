@@ -173,7 +173,7 @@ void OSPFProcessHelloMsg(gpacket_t *in_pkt)
     {
         if(curr->interface_id == in_pkt->frame.src_interface)
         {
-            curr->destination_ip = in_pkt->frame.src_ip_addr;
+            curr->destination_ip = (int)*(in_pkt->frame.src_ip_addr);
             if(curr->alive)
             {
                 //reset_timer();
