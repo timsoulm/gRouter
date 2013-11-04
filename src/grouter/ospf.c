@@ -90,12 +90,11 @@ void *hello_message_thread(void *arg)
 {
 
 
-    while(1)
-    {
-        sleep(10);
+    //while()
+    //{
         OSPFSendHelloPacket();
         //wait for 10 seconds before going again
-    }
+    //}
     return 0;
 }
 
