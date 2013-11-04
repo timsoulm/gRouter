@@ -152,6 +152,9 @@ int getInterfaceIDsandIPs(int *InterfaceIDarray, int *InterfaceIParray)
 			numberOfInterfaces++;
 		}
 	}
+	InterfaceIDarray = (int*)malloc(sizeof(int)*numberOfInterfaces);
+	InterfaceIParray = (int*)malloc(sizeof(int)*numberOfInterfaces);
+
 
 	for (i = 0; i < MAX_INTERFACES; i++)
 	{
