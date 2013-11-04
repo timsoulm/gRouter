@@ -64,7 +64,7 @@
 #define COMPARE_MAC(X, Y)           ( memcmp(X, Y, 6) )
 #define COMPARE_IP(X, Y)            ( memcmp(X, Y, 4) )
 #define MAC_BCAST_ADDR              {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
-#define IP_BCAST_ADDR               {0xE0, 0x00, 0x00, 0x05}
+#define IP_BCAST_ADDR               {0x05, 0x00, 0x00, 0xE0} // broadcast any-any in big endian
 
 // check IP RFC specifications
 

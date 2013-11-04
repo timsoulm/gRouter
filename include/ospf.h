@@ -14,7 +14,7 @@ typedef struct ospfhdr_t{
 	int area_id;
 	short checksum;
 	short authentication_type;
-	long authentication_array_start;
+	long long authentication_array_start;
 } ospfhdr_t;
 
 struct ospf_neighbor_i{

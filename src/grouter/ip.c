@@ -45,6 +45,7 @@ void IPIncomingPacket(gpacket_t *in_pkt)
         ip_packet_t *ip_pkt = (ip_packet_t *)&in_pkt->data.data;
 	uchar bcast_ip[] = IP_BCAST_ADDR;
 	
+	verbose(1,"[IPIncomingPacket]::RECEIVED PACKET");
 	// Is this IP packet for me??
 	if (IPCheckPacket4Me(in_pkt))
 	{
@@ -172,7 +173,7 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 		//	compute the new checksum
 		cksum = checksum((uchar *)ip_pkt, ip_pkt->ip_hdr_len*2);
 		ip_pkt->ip_cksum = htons(cksum);
-		temp_pkt->data.header.prot = htons(IP_PROTOCOL);
+		temp_pkt->data.header.prot = htons(IP_PROTOCOL); //fix
 
 		IPSend2Output(temp_pkt);
 		verbose(2, "[IPOutgoingPacket]:: IP packet sent.. ");

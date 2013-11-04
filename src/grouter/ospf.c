@@ -76,21 +76,22 @@ int create_lsa_header()
 */
 void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length, int src_ip)
 {
+    char tmpbuf[MAX_TMPBUF_LEN];
     hello_packet-> header.version = 2;
-    
-    hello_packet-> header.msg_length = pkt_length;
-    hello_packet-> header.source_ip_addr = src_ip;
-	hello_packet-> network_mask = 0xFFFFFF00; //255.255.255.0
-	hello_packet-> hello_interval = 10; //10 seconds
+    hello_packet-> header.type = 1;
+    hello_packet-> header.msg_length = htons(pkt_length);
+    hello_packet-> header.source_ip_addr = htonl(src_ip);
+	hello_packet-> network_mask = 0x00FFFFFF; //255.255.255.0
+	hello_packet-> hello_interval = htons(10); //10 seconds
 	hello_packet-> options = 0; //figure out later
 	hello_packet-> priority = 0; //0
-	hello_packet-> router_dead_interval = 40; //40 seconds
+	hello_packet-> router_dead_interval = htonl(40); //40 seconds
 }
 
 void *hello_message_thread(void *arg)
 {
 
-    sleep(20);
+    sleep(15);
     while(1)
     {
         OSPFSendHelloPacket();
@@ -162,7 +163,6 @@ void OSPFSendHelloPacket(void)
 
     for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
     {	
-	verbose(1, "GOT HERE");
         out_pkt = (gpacket_t *) malloc(sizeof(gpacket_t));
         ipkt = (ip_packet_t *)(out_pkt->data.data);
         ipkt->ip_hdr_len = 5;
@@ -173,7 +173,6 @@ void OSPFSendHelloPacket(void)
         NeighborIPs = (int*)(uchar*)hello_packet+44;
 	
         create_hello_packet(hello_packet, PacketSize, curr->source_ip);
-	verbose(1, "sending to broadcast ip address: %u", bcast_ip[0]);
         status = IPOutgoingPacket(out_pkt, bcast_ip, PacketSize, 1, OSPF_PROTOCOL);
     }
 
