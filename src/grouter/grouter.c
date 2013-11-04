@@ -15,7 +15,6 @@
 #include "packetcore.h"
 #include "classifier.h"
 #include "filter.h"
-#include "ospf.h"
 #include <pthread.h>
 
 router_config rconfig = {.router_name=NULL, .gini_home=NULL, .cli_flag=0, .config_file=NULL, .config_dir=NULL, .ghandler=0, .clihandler= 0, .scheduler=0, .worker=0, .schedcycle=10000};
