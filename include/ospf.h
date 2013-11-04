@@ -22,7 +22,7 @@ struct ospf_neighbor_i{
 	int destination_ip;
 	int interface_id;
 	int alive;
-	ospf_neighbor_i *next;
+	struct ospf_neighbor_i *next;
 };
 
 typedef struct ospf_neighbor_i ospf_neighbor_t;
