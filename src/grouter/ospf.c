@@ -135,6 +135,7 @@ void OSPFSendHelloPacket(void)
     ospf_neighbor_t *curr;
     int NumberOfKnownNeighbours;
     int status;
+    uchar bcast_ip[] = IP_BCAST_ADDR;
 
     
     //ip header+ospf header+ospf packet info+payload
@@ -163,7 +164,7 @@ void OSPFSendHelloPacket(void)
         NeighborIPs = (int*)(uchar*)hello_packet+44;
 
         create_hello_packet(hello_packet, PacketSize, curr->source_ip);
-        status = IPOutgoingPacket(out_pkt, IP_BCAST_ADDR, PacketSize, 1, OSPF_PROTOCOL);
+        status = IPOutgoingPacket(out_pkt, bcast_ip, PacketSize, 1, OSPF_PROTOCOL);
     }
 
 }
