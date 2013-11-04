@@ -101,14 +101,15 @@ void *hello_message_thread(void *arg)
 void ospf_init()
 {
     verbose(1, "opsf_init starting");
-    /*int i;
+    int i;
     int NumberOfInterfaces;
     int *NeighborIDs;
     int *NeighborIPs;
     ospf_neighbor_t *neighbor;
 
     NumberOfInterfaces = getInterfaceIDsandIPs(NeighborIDs,NeighborIPs);
-
+    verbose(1, "number of interfaces: %d",NumberOfInterfaces);
+    /*
     for(i=0;i<NumberOfInterfaces;i++)
     {
         neighbor = (ospf_neighbor_t *) malloc(sizeof(ospf_neighbor_t));
