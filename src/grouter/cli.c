@@ -26,6 +26,7 @@
 #include "filter.h"
 #include "classspec.h"
 #include "packetcore.h"
+#include "ospf.h"
 #include <slack/err.h>
 #include <slack/std.h>
 #include <slack/prog.h>
@@ -102,6 +103,8 @@ int CLIInit(router_config *rarg)
 		CLIProcessCmds(ifile, 0);
 		rl_instream = stdin;
 	}
+
+	ospf_init();
 
 	if (rarg->cli_flag != 0)
 		stat = pthread_create((pthread_t *)(&(rarg->clihandler)), NULL, CLIProcessCmdsInteractive, (void *)stdin);
