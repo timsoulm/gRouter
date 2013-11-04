@@ -115,7 +115,7 @@ int IPProcessBcastPacket(gpacket_t *in_pkt)
  * TODO: broadcast not yet implemented.. should be simple to implement.
  * read RFC 1812 and 922 ...
  */
- /*
+
 int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 {
 	int i;
@@ -130,7 +130,7 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 	int *interfaceIPs;
 	int numberOfInterfaces;
 
-	numberOfInterfaces = getAllInterfaceIDs(interfaceIDs,interfaceIPs);
+	numberOfInterfaces = getAllInterfaceIDs(&interfaceIDs,&interfaceIPs);
 
 	for(i=0;i<numberOfInterfaces;i++)
 	{
@@ -155,11 +155,13 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 		temp_pkt->frame.dst_interface = interfaceIDs[i];
 
 		verbose(2, "[IPOutgoingPacket]:: lookup MTU of nexthop");
+
 		// lookup the IP address of the destination interface..
 		if ((status = findInterfaceIP(MTU_tbl, temp_pkt->frame.dst_interface,
 					      iface_ip_addr)) == EXIT_FAILURE)
 					      return EXIT_FAILURE;
 		// the outgoing packet should have the interface IP as source
+
 		COPY_IP(ip_pkt->ip_src, gHtonl(tmpbuf, iface_ip_addr));
 		verbose(2, "[IPOutgoingPacket]:: almost one processing the IP header.");
 
@@ -176,7 +178,6 @@ int IPBroadcastPacket(gpacket_t *pkt, int size, int src_prot)
 	verbose(2, "[IPOutgoingPacket]:: IP packets broadcasted.. ");
 	return EXIT_SUCCESS;
 }
-*/
 
 /*
  * process an IP packet destined to someone else...
