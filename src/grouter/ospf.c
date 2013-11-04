@@ -101,7 +101,7 @@ void *hello_message_thread(void *arg)
 void ospf_init()
 {
     verbose(1, "opsf_init starting");
-    int i;
+    /*int i;
     int NumberOfInterfaces;
     int *NeighborIDs;
     int *NeighborIPs;
@@ -119,7 +119,7 @@ void ospf_init()
         neighbor->next = neighbor_list_head;
         neighbor_list_head = neighbor;
     }
-
+    */
 
 	//pthread_t tid;
 	//pthread_create(&tid, NULL, &hello_message_thread, NULL);
