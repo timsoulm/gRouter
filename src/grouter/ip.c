@@ -457,7 +457,7 @@ int IPOutgoingPacket(gpacket_t *pkt, uchar *dst_ip, int size, int newflag, int s
 		ip_pkt->ip_pkt_len = htons(size + ip_pkt->ip_hdr_len * 4);
 
 		// if we are broadcasting skip the nexthop lookup
-		//printRouteTable(route_tbl);
+
 		if( COMPARE_IP(gNtohl(tmpbuf, ip_pkt->ip_dst), bcast_ip) == 0 )
 		{
 			verbose(1,"broadcast packet, destination interface already filled in");
@@ -475,8 +475,7 @@ int IPOutgoingPacket(gpacket_t *pkt, uchar *dst_ip, int size, int newflag, int s
 					      return EXIT_FAILURE;
 		// the outgoing packet should have the interface IP as source
 		COPY_IP(ip_pkt->ip_src, gHtonl(tmpbuf, iface_ip_addr));
-		if( COMPARE_IP(gNtohl(tmpbuf, ip_pkt->ip_dst), bcast_ip) == 0 )
-			COPY_IP(pkt->frame.nxth_ip_addr, iface_ip_addr);
+
 		verbose(2, "[IPOutgoingPacket]:: almost one processing the IP header.");
 	} else
 	{
@@ -509,7 +508,7 @@ int IPSend2Output(gpacket_t *pkt)
 	}
 
 	vlevel = prog_verbosity_level();
-	if (vlevel >= 3)
+	//if (vlevel >= 3)
 		printGPacket(pkt, vlevel, "IP_ROUTINE");
 
 	return writeQueue(pcore->outputQ, (void *)pkt, sizeof(gpacket_t));

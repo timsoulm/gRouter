@@ -166,6 +166,7 @@ void OSPFSendHelloPacket(void)
         out_pkt = (gpacket_t *) malloc(sizeof(gpacket_t));
         ipkt = (ip_packet_t *)(out_pkt->data.data);
         ipkt->ip_hdr_len = 5;
+	out_pkt->frame.src_interface = 0;
 	out_pkt->frame.dst_interface = curr->interface_id;
 
         hello_packet = (ospf_hello_pkt *)((uchar *)ipkt + ipkt->ip_hdr_len*4);

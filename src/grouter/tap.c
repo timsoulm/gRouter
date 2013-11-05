@@ -81,7 +81,7 @@ void* fromTapDev(void *arg)
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);		// die as soon as cancelled
 	while (1)
 	{
-		verbose(2, "[fromTapDev]:: Receiving a packet ...");
+		verbose(1, "[fromTapDev]:: Receiving a packet ...");
 		if ((in_pkt = (gpacket_t *)malloc(sizeof(gpacket_t))) == NULL)
 		{
 			fatal("[fromTapDev]:: unable to allocate memory for packet.. ");

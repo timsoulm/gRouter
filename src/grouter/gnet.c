@@ -815,8 +815,9 @@ void *GNETHandler(void *outq)
 			if ((cached = lookupARPCache(in_pkt->frame.nxth_ip_addr,
 						     mac_addr)) == TRUE)
 				COPY_MAC(in_pkt->data.header.dst, mac_addr);
-			else if (COMPARE_IP(ip_pkt->ip_dst, bcast_ip)) //If destination IP is broadcast, then write destination MAC
+			else if (COMPARE_IP(gNtohl(tmpbuf, ip_pkt->ip_dst), bcast_ip) == 0 )
 			{
+				verbose(1,"REACHED HERE");
 				COPY_MAC(in_pkt->data.header.dst, bcast_mac);
 			}
 			else
