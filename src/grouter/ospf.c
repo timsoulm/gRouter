@@ -120,6 +120,7 @@ void ospf_init()
         neighbor = (ospf_neighbor_t *) malloc(sizeof(ospf_neighbor_t));
         neighbor->interface_id = NeighborIDs[i];
         neighbor->source_ip = NeighborIPs[i];
+	neighbor->destination_ip = 0;
         neighbor->alive = 0;
         neighbor->next = neighbor_list_head;
         neighbor_list_head = neighbor;
@@ -132,7 +133,7 @@ void ospf_init()
 
 void OSPFSendHelloPacket(void)
 {
-    int* NeighborIPs;
+    char* NeighborIPs;
     gpacket_t *out_pkt;
     ip_packet_t *ipkt;
     ospf_hello_pkt *hello_packet;
@@ -144,6 +145,7 @@ void OSPFSendHelloPacket(void)
     uchar bcast_ip[] = IP_BCAST_ADDR;
     int broadcast_int;
     uchar IPasCharArray[4];
+    char tmpbuf[MAX_TMPBUF_LEN];
     
     verbose(1, "send hello packet starting");
     
@@ -154,7 +156,6 @@ void OSPFSendHelloPacket(void)
     {
         if(curr->alive == 1)
         {
-            //NeighborIPs[NumberOfKnownNeighbours] = curr->destination_ip;
             NumberOfKnownNeighbours++;
         }
     }
@@ -172,20 +173,17 @@ void OSPFSendHelloPacket(void)
 	out_pkt->frame.dst_interface = curr->interface_id;
 
         hello_packet = (ospf_hello_pkt *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
-        NeighborIPs = (int*)(uchar*)hello_packet+44;
+        NeighborIPs = (char*)hello_packet+44;
 
 	for(curr2=neighbor_list_head; curr2 != NULL; curr2 = curr2->next)
     	{
         	if(curr2->alive == 1)
         	{
-            		NeighborIPs[i] = curr2->destination_ip;
-            		i++;
+            		COPY_IP(NeighborIPs, gHtonl(tmpbuf, &(curr2->destination_ip)));
+            		NeighborIPs+=4;
         	}
     	}
 
-
-	//verbose(1,"Source:%d, Destination:%d, Interface:%d, Alive:%d",curr->
-	
         create_hello_packet(hello_packet, PacketSize, curr->source_ip);
         status = IPOutgoingPacket(out_pkt, bcast_ip, PacketSize, 1, OSPF_PROTOCOL);
     }
@@ -194,6 +192,8 @@ void OSPFSendHelloPacket(void)
 void OSPFProcessHelloMsg(gpacket_t *in_pkt)
 {
     ospf_neighbor_t *curr;
+    char tmpbuf[MAX_TMPBUF_LEN];
+    ip_packet_t *ip_pkt = (ip_packet_t *)in_pkt->data.data;
 
     //if linked list isnt initialized yet we dont want to accept any hello messages
     if(ospf_init_complete==0)
@@ -202,7 +202,9 @@ void OSPFProcessHelloMsg(gpacket_t *in_pkt)
     {
         if(curr->interface_id == in_pkt->frame.src_interface)
         {
-            curr->destination_ip = (int)*(in_pkt->frame.src_ip_addr);
+            COPY_IP(&(curr->destination_ip), gNtohl(tmpbuf, ip_pkt->ip_src));
+	    //verbose(1,"ip_pkt->ip_src: %s",IP2Dot(tmpbuf,ip_pkt->ip_src));
+	    //verbose(1,"curr->destination_ip: %s",IP2Dot(tmpbuf,&(curr->destination_ip)));
             if(curr->alive)
             {
                 //reset_timer();
