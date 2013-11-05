@@ -59,6 +59,7 @@ void IPIncomingPacket(gpacket_t *in_pkt)
 		vlevel = prog_verbosity_level();
 		printGPacket(in_pkt, vlevel, "IP_ROUTINE");
 		IPProcessBcastPacket(in_pkt);
+			
 	} else
 	{
 		// Destinated to someone else

@@ -15,8 +15,8 @@
 #include <stdio.h>
 #include <string.h>
 
-ospf_neighbor_t *neighbor_list_head = NULL;
-
+ospf_neighbor_t *neighbor_list_head;
+int ospf_init_complete = 0;
 
 void OSPFProcessPacket(gpacket_t *in_pkt)
 {
@@ -102,12 +102,15 @@ void *hello_message_thread(void *arg)
 
 void ospf_init()
 {
-    verbose(1, "opsf_init starting");
     int i;
     int NumberOfInterfaces;
     int *NeighborIDs;
     int *NeighborIPs;
     ospf_neighbor_t *neighbor;
+    pthread_t tid;
+
+    verbose(1, "opsf_init starting");
+    neighbor_list_head = NULL;
 
     NumberOfInterfaces = getInterfaceIDsandIPs(&NeighborIDs,&NeighborIPs);
     verbose(1, "number of interfaces: %d",NumberOfInterfaces);
@@ -118,13 +121,12 @@ void ospf_init()
         neighbor->interface_id = NeighborIDs[i];
         neighbor->source_ip = NeighborIPs[i];
         neighbor->alive = 0;
-
         neighbor->next = neighbor_list_head;
         neighbor_list_head = neighbor;
     }
     
+	ospf_init_complete = 1;
 
-	pthread_t tid;
 	pthread_create(&tid, NULL, &hello_message_thread, NULL);
 }
 
@@ -135,9 +137,10 @@ void OSPFSendHelloPacket(void)
     ip_packet_t *ipkt;
     ospf_hello_pkt *hello_packet;
     short PacketSize;
-    ospf_neighbor_t *curr;
+    ospf_neighbor_t *curr; 
+    ospf_neighbor_t *curr2;
     int NumberOfKnownNeighbours;
-    int status;
+    int status, i;
     uchar bcast_ip[] = IP_BCAST_ADDR;
     int broadcast_int;
     uchar IPasCharArray[4];
@@ -151,11 +154,9 @@ void OSPFSendHelloPacket(void)
     {
         if(curr->alive == 1)
         {
-            NeighborIPs[NumberOfKnownNeighbours] = curr->destination_ip;
+            //NeighborIPs[NumberOfKnownNeighbours] = curr->destination_ip;
             NumberOfKnownNeighbours++;
         }
-        
-        curr = curr->next;
     }
     PacketSize = 44 + sizeof(int)*NumberOfKnownNeighbours;
 
@@ -163,6 +164,7 @@ void OSPFSendHelloPacket(void)
 
     for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
     {	
+	i = 0;
         out_pkt = (gpacket_t *) malloc(sizeof(gpacket_t));
         ipkt = (ip_packet_t *)(out_pkt->data.data);
         ipkt->ip_hdr_len = 5;
@@ -170,8 +172,19 @@ void OSPFSendHelloPacket(void)
 	out_pkt->frame.dst_interface = curr->interface_id;
 
         hello_packet = (ospf_hello_pkt *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
-
         NeighborIPs = (int*)(uchar*)hello_packet+44;
+
+	for(curr2=neighbor_list_head; curr2 != NULL; curr2 = curr2->next)
+    	{
+        	if(curr2->alive == 1)
+        	{
+            		NeighborIPs[i] = curr2->destination_ip;
+            		i++;
+        	}
+    	}
+
+
+	//verbose(1,"Source:%d, Destination:%d, Interface:%d, Alive:%d",curr->
 	
         create_hello_packet(hello_packet, PacketSize, curr->source_ip);
         status = IPOutgoingPacket(out_pkt, bcast_ip, PacketSize, 1, OSPF_PROTOCOL);
@@ -181,6 +194,10 @@ void OSPFSendHelloPacket(void)
 void OSPFProcessHelloMsg(gpacket_t *in_pkt)
 {
     ospf_neighbor_t *curr;
+
+    //if linked list isnt initialized yet we dont want to accept any hello messages
+    if(ospf_init_complete==0)
+	return;
     for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
     {
         if(curr->interface_id == in_pkt->frame.src_interface)
