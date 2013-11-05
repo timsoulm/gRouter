@@ -16,7 +16,9 @@
 #include <string.h>
 
 ospf_neighbor_t *neighbor_list_head;
+lsupdate_advertisement *ads_head;
 int ospf_init_complete = 0;
+int seq_num = 0; //Sequence number used in Router
 
 void OSPFProcessPacket(gpacket_t *in_pkt)
 {
@@ -90,12 +92,19 @@ void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length, int src
 
 void *hello_message_thread(void *arg)
 {
+	ospf_neighbor_t *curr;
 
     sleep(15);
     while(1)
     {
         OSPFSendHelloPacket();
         sleep(5);
+        for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
+        {
+       		(curr->time_since_hello)++;
+       		if(curr->time_since_hello >= 5)
+       			curr->alive = 0;
+        }
     }
     return 0;
 }
@@ -110,7 +119,7 @@ void ospf_init()
     pthread_t tid;
 
     verbose(1, "opsf_init starting");
-    neighbor_list_head = NULL;
+    neighbor_list_head = NULL; //Changed to
 
     NumberOfInterfaces = getInterfaceIDsandIPs(&NeighborIDs,&NeighborIPs);
     verbose(1, "number of interfaces: %d",NumberOfInterfaces);
@@ -120,7 +129,7 @@ void ospf_init()
         neighbor = (ospf_neighbor_t *) malloc(sizeof(ospf_neighbor_t));
         neighbor->interface_id = NeighborIDs[i];
         neighbor->source_ip = NeighborIPs[i];
-	neighbor->destination_ip = 0;
+        neighbor->destination_ip = 0;
         neighbor->alive = 0;
         neighbor->next = neighbor_list_head;
         neighbor_list_head = neighbor;
@@ -131,6 +140,120 @@ void ospf_init()
 	pthread_create(&tid, NULL, &hello_message_thread, NULL);
 }
 
+void create_lsupdate_packet(lsupdate_pkt_t* lsupdate_pkt, short pkt_length, int src_ip)
+{
+	ospfhdr_t common_header;
+	ospf_header_lsa lsa_header;
+	short zeros_in_pkt;
+	short num_links;
+
+	int i;
+	lsupdate_advertisement* ad;
+	uchar network;
+	uchar network_mask = 0x00FFFFFF;
+	char tmpbuf[MAX_TMPBUF_LEN];
+	ospf_neighbor_t *curr;
+
+	int NumKnownNeighbors = 0;
+
+	lsupdate_pkt-> common_header.version = 4;
+	lsupdate_pkt-> common_header.type = 1;
+	lsupdate_pkt-> common_header.msg_length = htons(pkt_length);
+	lsupdate_pkt-> common_header.source_ip_addr = htonl(src_ip);
+
+	lsupdate_pkt-> lsa_header.ls_age    		= 0;
+	lsupdate_pkt-> lsa_header.ls_type    	= 1;
+	lsupdate_pkt-> lsa_header.ls_id      	= src_ip;
+	lsupdate_pkt-> lsa_header.ad_router 		= src_ip;
+	lsupdate_pkt-> lsa_header.ls_seq_num 	= seq_num;
+	lsupdate_pkt-> lsa_header.ls_checksum 	= 0;
+
+	for(curr = neighbor_list_head; curr != NULL; curr = curr->next)
+	    {
+	        if(curr -> alive == 1)
+	        {
+	            ad = (lsupdate_advertisement *) malloc(sizeof(lsupdate_advertisement));
+	            network = curr->source_ip & network_mask; //Put network mask of source IP in 'network'
+	            COPY_IP(ad->link_id, gHtonl(tmpbuf, network));
+	            /*
+	             * TODO: neighbor list must know if stub or A-A
+	             * Must add this functionality to neighbor list
+	             */
+	            if(curr->is_stub == 1) //STUB
+	            {
+	            	COPY_IP(ad->local_data, gHtonl(tmpbuf, network));
+	            	ad->link_type = STUB;
+	            }
+	            else //ANY_TO_ANY
+	            {
+	            	COPY_IP(ad->local_data, curr->source_ip);
+	            	ad->link_type = ANY_TO_ANY;
+	            }
+	            ad->zeros_in_update = 0;
+	            ad->zeros_in_update2 = 0;
+	            ad->metrics = 1;
+	            ad->next = ads_head;
+	            ads_head = ad;
+	            NumKnownNeighbors++;
+	        }
+	    }
+	lsupdate_pkt->ads = *ads_head;
+	lsupdate_pkt->lsa_header.ls_length = 4 + (NumKnownNeighbors*sizeof(lsupdate_advertisement)); //TODO: ?
+
+	lsupdate_pkt->zeros_in_pkt = 0;
+	lsupdate_pkt->num_links = NumKnownNeighbors;
+}
+void broadcast_lsupdate_packet(void)
+{
+    char* NeighborIPs;
+    gpacket_t *out_pkt;
+    ip_packet_t *ipkt;
+    lsupdate_pkt_t *lsupdate_pkt;
+	lsupdate_advertisement* ad;
+
+    short PacketSize;
+    ospf_neighbor_t *curr;
+    ospf_neighbor_t *curr2;
+    int NumberOfKnownNeighbours;
+    int status, i;
+    uchar bcast_ip[] = IP_BCAST_ADDR;
+    int broadcast_int;
+    uchar IPasCharArray[4];
+    char tmpbuf[MAX_TMPBUF_LEN];
+
+    verbose(1, "[Send_LSUpdate_Packet]:: Send is starting...");
+
+    NumberOfKnownNeighbours = 0;
+    for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
+    {
+        if(curr->alive == 1)
+        {
+            NumberOfKnownNeighbours++;
+        }
+    }
+    PacketSize = sizeof(ospfhdr_t) + sizeof(ospf_header_lsa)+4+sizeof(lsupdate_advertisement)*NumberOfKnownNeighbours;
+
+    lsupdate_pkt = malloc(sizeof(lsupdate_pkt_t));
+    create_lsupdate_packet(lsupdate_pkt, PacketSize, curr->source_ip);
+
+    for(curr=neighbor_list_head; curr != NULL; curr = curr->next) //Send to all live neighbors
+    {
+    	if(curr2->alive == 1)
+		{
+			i = 0;
+			out_pkt = (gpacket_t *) malloc(sizeof(gpacket_t));
+			ipkt = (ip_packet_t *)(out_pkt->data.data);
+			ipkt->ip_hdr_len = 5;
+			out_pkt->frame.src_interface = 0;
+			out_pkt->frame.dst_interface = curr->interface_id;
+
+
+			duplicatePacket(out_pkt);
+			status = IPOutgoingPacket(out_pkt, bcast_ip, PacketSize, 1, OSPF_PROTOCOL);
+        }
+    }
+    seq_num++;
+}
 void OSPFSendHelloPacket(void)
 {
     char* NeighborIPs;
@@ -207,10 +330,10 @@ void OSPFProcessHelloMsg(gpacket_t *in_pkt)
 	    //verbose(1,"curr->destination_ip: %s",IP2Dot(tmpbuf,&(curr->destination_ip)));
             if(curr->alive)
             {
-                //reset_timer();
+                curr->time_since_hello = 0;
             } else {
                 curr->alive = 1; //TODO: reset timer once we have one
-                //start_timer();
+                curr->time_since_hello = 0;
             }
             break;
         }

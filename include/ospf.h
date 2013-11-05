@@ -5,6 +5,8 @@
 #define OSPF_LS_REQUEST         3
 #define OSPF_LS_UPDATE          4
 #define OSPF_STATUS_ACK         5
+#define ANY_TO_ANY 				2
+#define STUB					3
 
 typedef struct ospfhdr_t{
 	char version;
@@ -22,6 +24,8 @@ struct ospf_neighbor_i{
 	int destination_ip;
 	int interface_id;
 	int alive;
+	int time_since_hello;
+	int is_stub;
 	struct ospf_neighbor_i *next;
 };
 
@@ -38,7 +42,7 @@ typedef struct ospf_hello_pkt{
 	int desginated_router_backup_ip;
 } ospf_hello_pkt;
 
-typedef struct ospf_header_lsa{
+typedef struct ospf_header_lsa{ //Reviewed
 	short ls_age;
 	short ls_type;
 	int ls_id;
@@ -48,28 +52,37 @@ typedef struct ospf_header_lsa{
 	short ls_length;
 } ospf_header_lsa;
 
-typedef struct ospf_lsrequest{
+/*This struct seems useless
+ * typedef struct ospf_lsrequest{
 	ospfhdr_t common_header;	
 	int ls_type;
 	int link_id;
 	int ad_router_ip;
 } ospf_lsrequest;
+*/
 
-typedef struct ospf_ad{
-	int link_id;
-	int local_data;
-	char link_type;
-} ospf_ad;
+typedef struct lsupdate_advertisement{
+	int link_id; //Network Address
+	int local_data; //Router address for any-to-any, Network mask for stub
+	char link_type; //Any-to-any or STUB
+	int zeros_in_update;
+	char zeros_in_update2;
+	short metrics;
+	struct lsupdate_advertisement* next;
+} lsupdate_advertisement;
 
-typedef struct ospf_lsupdate{
+typedef struct lsupdate_pkt_t{
 	ospfhdr_t common_header;	
 	ospf_header_lsa lsa_header;
+	short zeros_in_pkt;
 	short num_links;
-	ospf_ad* ads;
-} ospf_lsupdate;
+	lsupdate_advertisement* ads;
+} lsupdate_pkt_t;
 
 void OSPFProcessPacket(gpacket_t *in_pkt);
 void OSPFProcessHelloMsg(gpacket_t *in_pkt);
 void OSPFProcessLSUpdate(gpacket_t *in_pkt);
+void create_lsupdate_packet(lsupdate_pkt_t* lsupdate_pkt, short pkt_length, int src_ip);
+void broadcast_lsupdate_packet(void);
 void OSPFSendHelloPacket(void);
 void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length, int src_ip);
