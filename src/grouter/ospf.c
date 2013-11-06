@@ -16,8 +16,9 @@
 #include <string.h>
 
 ospf_neighbor_t *neighbor_list_head;
+MyRouter_t MyRouter;
+
 int ospf_init_complete = 0;
-int seq_num = 0; //Sequence number used in Router
 
 void OSPFProcessPacket(gpacket_t *in_pkt)
 {
@@ -90,10 +91,13 @@ void ospf_init()
     pthread_t tid;
 
     verbose(1, "opsf_init starting");
-    neighbor_list_head = NULL; //Changed to
+    neighbor_list_head = NULL;
 
     NumberOfInterfaces = getInterfaceIDsandIPs(&NeighborIDs,&NeighborIPs);
     verbose(1, "number of interfaces: %d",NumberOfInterfaces);
+
+    MyRouter.id = FindMin(NeighborIPs, NumberOfinterfaces);
+    MyRouter.ls_seq_num = 0;
 
     for(i=0;i<NumberOfInterfaces;i++)
     {
@@ -101,11 +105,16 @@ void ospf_init()
         neighbor->interface_id = NeighborIDs[i];
         neighbor->source_ip = NeighborIPs[i];
         neighbor->destination_ip = 0;
+        neighbor->link_id = NeighborIPs[i] & 0xFFFFFF00;
         neighbor->alive = 0;
         neighbor->next = neighbor_list_head;
         neighbor_list_head = neighbor;
+        neighbor->type = STUB;
     }
 
+// TODO (Mido#1#): Initialize Database ...
+//
+    //InitDbase();
 	ospf_init_complete = 1;
 
 	pthread_create(&tid, NULL, &hello_message_thread, NULL);
@@ -154,6 +163,7 @@ void OSPFSendLSUpdate(void)
     char tmpbuf[MAX_TMPBUF_LEN];
     char *is_stub_array;
     int *link_id_array;
+    uchar[] net_mask = {0xFF, 0xFF, 0xFF, 0x00};
 
     verbose(1, "[Send_LSUpdate_Packet]:: Send is starting...");
 
@@ -169,18 +179,22 @@ void OSPFSendLSUpdate(void)
 
     entry = ipkt + (ipkt->ip_hdr_len)*4 + sizeof(ospfhdr_t) + sizeof(ospfhdr_lsa);
 
-    GetMyData(link_id_array, is_stub_array, &num_of_links);
 
-    for(i = 0; i <num_of_links; i++)
+    for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
     {
-        COPY_IP(entry->link_id, gHtonl(tmpbuf, &link_id_array[i]));
-        entry->link_type = is_stub_array[i];
+        COPY_IP(entry->link_id, gHtonl(tmpbuf, &(curr->link_id)));
+        if(curr->type == STUB) {
+            COPY_IP(entry->link_data, gHtonl(tmpbuf, &(curr->source_ip)));
+        } else if(curr->type == ANY_TO_ANY) {
+            COPY_IP(entry->link_data, gHtonl(tmpbuf, net_mask));
+        }
+        entry->link_type = htons(curr->type);
         entry->metric = htons(1);
         entry = entry + sizeof(entry);
     }
 
     OSPFbroadcastPacket(&out_pkt, PacketSize);
-    seq_num++;
+    (MyRouter.ls_seq_num)++;
 }
 
 void OSPFSendHelloPacket(void)
@@ -232,6 +246,7 @@ void OSPFProcessHelloMsg(gpacket_t *in_pkt)
         if(curr->interface_id == in_pkt->frame.src_interface)
         {
             COPY_IP(&(curr->destination_ip), gNtohl(tmpbuf, ip_pkt->ip_src));
+            curr->type = ANY_TO_ANY;
 	    //verbose(1,"ip_pkt->ip_src: %s",IP2Dot(tmpbuf,ip_pkt->ip_src));
 	    //verbose(1,"curr->destination_ip: %s",IP2Dot(tmpbuf,&(curr->destination_ip)));
             if(curr->alive)
@@ -258,13 +273,14 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
     int incoming_router_id, incoming_seq_num, incoming_num_of_links;
     int *link_id_array;
     lsupdate_entry entry;
+    int PacketSize;
 
     //if linked list isnt initialized yet we dont want to accept LSUpdates
     if(ospf_init_complete==0)return;
 
     incoming_router_id = gNtohl(tmpbuf, &(lsupdate_pkt->lsa_header.ls_id));
     incoming_seq_num = gNtohl(tmpbuf, &(lsupdate_pkt->lsa_header.ls_seq_num));
-
+/*
     if(EntryExists(incoming_router_id) == 1)
     {
         if(SeqNum(incoming_router_id) >= incoming_seq_num)
@@ -287,7 +303,7 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
         is_stub_array[i] = entry->link_type;
         entry = entry + sizeof(entry);
     }
-
+/*
     dbase.router_id = incoming_router_id;
     dbase.seq_num = incoming_seq_num;
     dbase.id_array = link_id_array;
@@ -302,8 +318,8 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
     {
         CreateEntry(dbase);
     }
-
-    free(in_pkt);
+*/  PacketSize = ntohs(lsupdate_pkt->common_header.msg_length);
+    IPBroadcastPacket(in_pkt, PacketSize, OSPF_PROTOCOL);
 }
 
 void OSPFbroadcastPacket(gpacket_t *out_pkt, int PacketSize)
@@ -339,4 +355,19 @@ int GetNumberOfKnownNeighbours(void)
     }
 }
 
+int FindMin(int* array, int size)
+{
+    int minimum, i;
 
+    minimum = array[0];
+
+    for ( i = 1 ; i < size ; i++ )
+    {
+        if ( array[i] < minimum )
+        {
+           minimum = array[i];
+        }
+    }
+
+    return minimum;
+}

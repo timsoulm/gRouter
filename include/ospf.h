@@ -22,10 +22,11 @@ typedef struct ospfhdr_t{
 struct ospf_neighbor_i{
 	int source_ip;
 	int destination_ip;
+	int link_id;
 	int interface_id;
 	int alive;
 	int time_since_hello;
-	int is_stub;
+	int type;
 	struct ospf_neighbor_i *next;
 };
 
@@ -77,6 +78,11 @@ typedef struct lsupdate_pkt_t{
 	short num_links;
 } lsupdate_pkt_t;
 
+typedef struct MyRouter_t {
+    int id;
+    int ls_seq_num;
+    }
+
 void OSPFProcessPacket(gpacket_t *in_pkt);
 void OSPFProcessHelloMsg(gpacket_t *in_pkt);
 void OSPFProcessLSUpdate(gpacket_t *in_pkt);
@@ -84,3 +90,4 @@ void create_lsupdate_packet(lsupdate_pkt_t* lsupdate_pkt, short pkt_length, int 
 void broadcast_lsupdate_packet(void);
 void OSPFSendHelloPacket(void);
 void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length);
+int FindMin(int* array, int size);
