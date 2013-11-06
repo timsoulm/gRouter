@@ -96,7 +96,7 @@ void ospf_init()
     NumberOfInterfaces = getInterfaceIDsandIPs(&NeighborIDs,&NeighborIPs);
     verbose(1, "number of interfaces: %d",NumberOfInterfaces);
 
-    MyRouter.id = FindMin(NeighborIPs, NumberOfinterfaces);
+    MyRouter.id = FindMin(NeighborIPs, NumberOfInterfaces);
     MyRouter.ls_seq_num = 0;
 
     for(i=0;i<NumberOfInterfaces;i++)

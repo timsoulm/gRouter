@@ -86,7 +86,7 @@ typedef struct MyRouter_t {
 void OSPFProcessPacket(gpacket_t *in_pkt);
 void OSPFProcessHelloMsg(gpacket_t *in_pkt);
 void OSPFProcessLSUpdate(gpacket_t *in_pkt);
-void create_lsupdate_packet(lsupdate_pkt_t* lsupdate_pkt, short pkt_length, int src_ip);
+void create_lsupdate_packet(lsupdate_pkt_t* lsupdate_pkt, short pkt_length, int ls_ID, short NumOfLinks);
 void broadcast_lsupdate_packet(void);
 void OSPFSendHelloPacket(void);
 void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length);
