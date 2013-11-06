@@ -42,7 +42,7 @@ typedef struct ospf_hello_pkt{
 	int desginated_router_backup_ip;
 } ospf_hello_pkt;
 
-typedef struct ospf_header_lsa{ //Reviewed
+typedef struct ospfhdr_lsa{ //Reviewed
 	short ls_age;
 	short ls_type;
 	int ls_id;
@@ -50,33 +50,31 @@ typedef struct ospf_header_lsa{ //Reviewed
 	int ls_seq_num;
 	short ls_checksum;
 	short ls_length;
-} ospf_header_lsa;
+} ospfhdr_lsa;
 
 /*This struct seems useless
  * typedef struct ospf_lsrequest{
-	ospfhdr_t common_header;	
+	ospfhdr_t common_header;
 	int ls_type;
 	int link_id;
 	int ad_router_ip;
 } ospf_lsrequest;
 */
 
-typedef struct lsupdate_advertisement{
+typedef struct lsupdate_entry{
 	int link_id; //Network Address
 	int local_data; //Router address for any-to-any, Network mask for stub
 	char link_type; //Any-to-any or STUB
 	int zeros_in_update;
 	char zeros_in_update2;
 	short metrics;
-	struct lsupdate_advertisement* next;
-} lsupdate_advertisement;
+} lsupdate_entry;
 
 typedef struct lsupdate_pkt_t{
-	ospfhdr_t common_header;	
-	ospf_header_lsa lsa_header;
+	ospfhdr_t common_header;
+	ospfhdr_lsa lsa_header;
 	short zeros_in_pkt;
 	short num_links;
-	lsupdate_advertisement* ads;
 } lsupdate_pkt_t;
 
 void OSPFProcessPacket(gpacket_t *in_pkt);
