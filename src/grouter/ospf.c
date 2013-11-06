@@ -163,7 +163,7 @@ void OSPFSendLSUpdate(void)
     char tmpbuf[MAX_TMPBUF_LEN];
     char *is_stub_array;
     int *link_id_array;
-    uchar[] net_mask = {0xFF, 0xFF, 0xFF, 0x00};
+    uchar net_mask[] = {0xFF, 0xFF, 0xFF, 0x00};
 
     verbose(1, "[Send_LSUpdate_Packet]:: Send is starting...");
 
@@ -182,6 +182,7 @@ void OSPFSendLSUpdate(void)
 
     for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
     {
+
         COPY_IP(entry->link_id, gHtonl(tmpbuf, &(curr->link_id)));
         if(curr->type == STUB) {
             COPY_IP(entry->link_data, gHtonl(tmpbuf, &(curr->source_ip)));

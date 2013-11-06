@@ -91,3 +91,4 @@ void broadcast_lsupdate_packet(void);
 void OSPFSendHelloPacket(void);
 void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length);
 int FindMin(int* array, int size);
+void OSPFbroadcastPacket(gpacket_t *out_pkt, int PacketSize);
