@@ -63,8 +63,8 @@ typedef struct ospfhdr_lsa{ //Reviewed
 */
 
 typedef struct lsupdate_entry{
-	char[4] link_id; //Network Address
-	char[4] link_data; //Router address for any-to-any, Network mask for stub
+	int link_id; //Network Address
+	int link_data; //Router address for any-to-any, Network mask for stub
 	char link_type; //Any-to-any or STUB
 	int zeros_in_update;
 	char zeros_in_update2;
@@ -81,7 +81,7 @@ typedef struct lsupdate_pkt_t{
 typedef struct MyRouter_t {
     int id;
     int ls_seq_num;
-    }
+}MyRouter_t;
 
 void OSPFProcessPacket(gpacket_t *in_pkt);
 void OSPFProcessHelloMsg(gpacket_t *in_pkt);
