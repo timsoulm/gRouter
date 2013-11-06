@@ -1,6 +1,6 @@
 
 /*
- * test
+ *
  * OSPF
  *
  */
@@ -16,7 +16,6 @@
 #include <string.h>
 
 ospf_neighbor_t *neighbor_list_head;
-lsupdate_entry *ads_head;
 int ospf_init_complete = 0;
 int seq_num = 0; //Sequence number used in Router
 
@@ -35,7 +34,7 @@ void OSPFProcessPacket(gpacket_t *in_pkt)
 
     case OSPF_LS_UPDATE:
         verbose(2, "[OSPFProcessPacket]:: OSPF processing for Link Status Update");
-        OSPProcessLSUpdate(in_pkt);
+        OSPFProcessLSUpdate(in_pkt);
         break;
 
     case OSPF_DBASE_DESCRIPTION:
@@ -49,8 +48,9 @@ void OSPFProcessPacket(gpacket_t *in_pkt)
 void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length)
 {
     char tmpbuf[MAX_TMPBUF_LEN];
+
     hello_packet-> header.version = 2;
-    hello_packet-> header.type = 1;
+    hello_packet-> header.type = OSPF_HELLO;
     hello_packet-> header.msg_length = htons(pkt_length);
 	hello_packet-> network_mask = 0x00FFFFFF; //255.255.255.0
 	hello_packet-> hello_interval = htons(10); //10 seconds
@@ -111,7 +111,7 @@ void ospf_init()
 	pthread_create(&tid, NULL, &hello_message_thread, NULL);
 }
 
-void create_lsupdate_packet(lsupdate_pkt_t* lsupdate_pkt, short pkt_length, int src_ip)
+void create_lsupdate_packet(lsupdate_pkt_t* lsupdate_pkt, short pkt_length, int ls_ID, short NumOfLinks)
 {
 	ospfhdr_t common_header;
 	ospf_header_lsa lsa_header;
@@ -127,102 +127,59 @@ void create_lsupdate_packet(lsupdate_pkt_t* lsupdate_pkt, short pkt_length, int 
 
 	int NumKnownNeighbors = 0;
 
-	lsupdate_pkt-> common_header.version = 4;
-	lsupdate_pkt-> common_header.type = 1;
+	lsupdate_pkt-> common_header.version = 2;
+	lsupdate_pkt-> common_header.type = OSPF_LS_UPDATE;
 	lsupdate_pkt-> common_header.msg_length = htons(pkt_length);
-	lsupdate_pkt-> common_header.source_ip_addr = htonl(src_ip);
 
 	lsupdate_pkt-> lsa_header.ls_age    	= 0;
-	lsupdate_pkt-> lsa_header.ls_type    	= 1;
-	lsupdate_pkt-> lsa_header.ls_id      	= src_ip;
-	lsupdate_pkt-> lsa_header.ad_router 	= src_ip;
-	lsupdate_pkt-> lsa_header.ls_seq_num 	= seq_num;
+	lsupdate_pkt-> lsa_header.ls_type    	= htons(1);
+	lsupdate_pkt-> lsa_header.ls_id      	= htonl(ls_ID);
+	lsupdate_pkt-> lsa_header.ad_router 	= htonl(ls_ID);
+	lsupdate_pkt-> lsa_header.ls_seq_num 	= htonl(seq_num);
 	lsupdate_pkt-> lsa_header.ls_checksum 	= 0;
-
-	for(curr = neighbor_list_head; curr != NULL; curr = curr->next)
-	    {
-	        if(curr -> alive == 1)
-	        {
-	            ad = (lsupdate_entry *) malloc(sizeof(lsupdate_entry));
-	            network = curr->source_ip & network_mask; //Put network mask of source IP in 'network'
-	            COPY_IP(ad->link_id, gHtonl(tmpbuf, network));
-	            /*
-	             * TODO: neighbor list must know if stub or A-A
-	             * Must add this functionality to neighbor list
-	             */
-	            if(curr->is_stub == 1) //STUB
-	            {
-	            	COPY_IP(ad->local_data, gHtonl(tmpbuf, network));
-	            	ad->link_type = STUB;
-	            }
-	            else //ANY_TO_ANY
-	            {
-	            	COPY_IP(ad->local_data, curr->source_ip);
-	            	ad->link_type = ANY_TO_ANY;
-	            }
-	            ad->zeros_in_update = 0;
-	            ad->zeros_in_update2 = 0;
-	            ad->metrics = 1;
-	            ad->next = ads_head;
-	            ads_head = ad;
-	            NumKnownNeighbors++;
-	        }
-	    }
-	lsupdate_pkt->ads = *ads_head;
-	lsupdate_pkt->lsa_header.ls_length = 4 + (NumKnownNeighbors*sizeof(lsupdate_entry)); //TODO: ?
-
-	lsupdate_pkt->zeros_in_pkt = 0;
-	lsupdate_pkt->num_links = NumKnownNeighbors;
+	lsupdate_pkt-> lsa_header.ls_length     = htons(pkt_length-sizeof(ospfhdr_t));
+	lsupdate_pkt-> zeros_in_pkt             = 0;
+	lsupdate_pkt-> num_links                = NumOfLinks;
 }
+
 void OSPFSendLSUpdate(void)
 {
-    char* NeighborIPs;
-    gpacket_t *out_pkt;
+    gpacket_t out_pkt;
     ip_packet_t *ipkt;
     lsupdate_pkt_t *lsupdate_pkt;
-	lsupdate_entry* ad;
-
+	lsupdate_entry* entry;
     short PacketSize;
     ospf_neighbor_t *curr;
-    ospf_neighbor_t *curr2;
     int NumberOfKnownNeighbours;
-    int status;
-    uchar bcast_ip[] = IP_BCAST_ADDR;
-    int broadcast_int;
-    uchar IPasCharArray[4];
     char tmpbuf[MAX_TMPBUF_LEN];
+    char *is_stub_array;
+    int *link_id_array;
 
     verbose(1, "[Send_LSUpdate_Packet]:: Send is starting...");
 
-    NumberOfKnownNeighbours = 0;
-    for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
-    {
-        if(curr->alive == 1)
-        {
-            NumberOfKnownNeighbours++;
-        }
-    }
+    NumberOfKnownNeighbours = GetNumberOfKnownNeighbours();
     PacketSize = sizeof(ospfhdr_t) + sizeof(ospfhdr_lsa)+4+sizeof(lsupdate_entry)*NumberOfKnownNeighbours;
 
-    lsupdate_pkt = malloc(sizeof(lsupdate_pkt_t));
-    create_lsupdate_packet(lsupdate_pkt, PacketSize, curr->source_ip);
+    ipkt = (ip_packet_t *)(out_pkt.data.data);
+    ipkt->ip_hdr_len = 5;
+    out_pkt.frame.src_interface = 0;
 
-    for(curr=neighbor_list_head; curr != NULL; curr = curr->next) //Send to all live neighbors
+    lsupdate_pkt = (lsupdate_pkt_t *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
+    create_lsupdate_packet(lsupdate_pkt, PacketSize, GetMyLSID(), NumberOfKnownNeighbours);
+
+    entry = ipkt + (ipkt->ip_hdr_len)*4 + sizeof(ospfhdr_t) + sizeof(ospfhdr_lsa);
+
+    GetMyData(link_id_array, is_stub_array, &num_of_links);
+
+    for(i = 0; i <num_of_links; i++)
     {
-    	if(curr2->alive == 1)
-		{
-			i = 0;
-			out_pkt = (gpacket_t *) malloc(sizeof(gpacket_t));
-			ipkt = (ip_packet_t *)(out_pkt->data.data);
-			ipkt->ip_hdr_len = 5;
-			out_pkt->frame.src_interface = 0;
-			out_pkt->frame.dst_interface = curr->interface_id;
-
-
-			duplicatePacket(out_pkt);
-			status = IPOutgoingPacket(out_pkt, bcast_ip, PacketSize, 1, OSPF_PROTOCOL);
-        }
+        COPY_IP(entry->link_id, gHtonl(tmpbuf, &link_id_array[i]));
+        entry->link_type = is_stub_array[i];
+        entry->metric = htons(1);
+        entry = entry + sizeof(entry);
     }
+
+    OSPFbroadcastPacket(&out_pkt, PacketSize);
     seq_num++;
 }
 
@@ -239,14 +196,7 @@ void OSPFSendHelloPacket(void)
 
     verbose(1, "send hello packet starting");
 
-    NumberOfKnownNeighbours = 0;
-    for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
-    {
-        if(curr->alive == 1)
-        {
-            NumberOfKnownNeighbours++;
-        }
-    }
+    NumberOfKnownNeighbours = GetNumberOfKnownNeighbours();
     PacketSize = 44 + sizeof(int)*NumberOfKnownNeighbours;
 
     ipkt = (ip_packet_t *)(out_pkt.data.data);
@@ -275,8 +225,8 @@ void OSPFProcessHelloMsg(gpacket_t *in_pkt)
     ip_packet_t *ip_pkt = (ip_packet_t *)in_pkt->data.data;
 
     //if linked list isnt initialized yet we dont want to accept any hello messages
-    if(ospf_init_complete==0)
-	return;
+    if(ospf_init_complete==0) return;
+
     for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
     {
         if(curr->interface_id == in_pkt->frame.src_interface)
@@ -296,11 +246,64 @@ void OSPFProcessHelloMsg(gpacket_t *in_pkt)
             break;
         }
     }
+    free(in_pkt);
 }
 
 void OSPFProcessLSUpdate(gpacket_t *in_pkt)
 {
+    ospf_neighbor_t *curr;
+    char tmpbuf[MAX_TMPBUF_LEN];
+    ip_packet_t *ip_pkt = (ip_packet_t *)in_pkt->data.data;
+    lsupdate_pkt_t *lsupdate_pkt = (lsupdate_pkt_t *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
+    int incoming_router_id, incoming_seq_num, incoming_num_of_links;
+    int *link_id_array;
+    lsupdate_entry entry;
 
+    //if linked list isnt initialized yet we dont want to accept LSUpdates
+    if(ospf_init_complete==0)return;
+
+    incoming_router_id = gNtohl(tmpbuf, &(lsupdate_pkt->lsa_header.ls_id));
+    incoming_seq_num = gNtohl(tmpbuf, &(lsupdate_pkt->lsa_header.ls_seq_num));
+
+    if(EntryExists(incoming_router_id) == 1)
+    {
+        if(SeqNum(incoming_router_id) >= incoming_seq_num)
+        {
+            // Drop Packet
+            free(in_pkt);
+            return;
+        }
+    }
+
+    incoming_num_of_links = gNtohl(tmpbuf, &(lsupdate_pkt->num_links));
+    link_id_array = malloc(sizeof(int)*incoming_num_of_links);
+    link_type_array = malloc(sizeof(char)*incoming_num_of_links);
+
+    entry = ipkt + (ipkt->ip_hdr_len)*4 + sizeof(ospfhdr_t) + sizeof(ospfhdr_lsa);
+
+    for(i = 0; i <num_of_links; i++)
+    {
+        COPY_IP(&link_id_array[i] , gNtohl(tmpbuf, entry->link_id));
+        is_stub_array[i] = entry->link_type;
+        entry = entry + sizeof(entry);
+    }
+
+    dbase.router_id = incoming_router_id;
+    dbase.seq_num = incoming_seq_num;
+    dbase.id_array = link_id_array;
+    dbase.type_array = link_type_array;
+    dbase.array_length = incoming_num_of_links;
+
+    if(EntryExists(incoming_router_id) == 1)
+    {
+        UpdateEntry(dbase);
+    }
+    } else if(EntryExists(incoming_router_id) == 0)
+    {
+        CreateEntry(dbase);
+    }
+
+    free(in_pkt);
 }
 
 void OSPFbroadcastPacket(gpacket_t *out_pkt, int PacketSize)
@@ -310,15 +313,30 @@ void OSPFbroadcastPacket(gpacket_t *out_pkt, int PacketSize)
     ospf_neighbor_t *curr;
     ip_packet_t *ipkt;
     uchar bcast_ip[] = IP_BCAST_ADDR;
+	int status;
 
     for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
     {
         cppkt = duplicatePacket(out_pkt);
         ipkt = (ip_packet_t *)(cppkt->data.data);
         header = (ospfhdr_t *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
-        cppkt->frame.dst_interface = curr->interface_id
+        cppkt->frame.dst_interface = curr->interface_id;
         header->source_ip_addr = htonl(curr->source_ip);
         status = IPOutgoingPacket(cppkt, bcast_ip, PacketSize, 1, OSPF_PROTOCOL);
     }
 
 }
+
+int GetNumberOfKnownNeighbours(void)
+{
+    NumberOfKnownNeighbours = 0;
+    for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
+    {
+        if(curr->alive == 1)
+        {
+            NumberOfKnownNeighbours++;
+        }
+    }
+}
+
+

@@ -52,6 +52,7 @@
 		<Unit filename="include/moduledefs.h" />
 		<Unit filename="include/msgqueue.h" />
 		<Unit filename="include/mtu.h" />
+		<Unit filename="include/ospf.h" />
 		<Unit filename="include/packetcore.h" />
 		<Unit filename="include/protocols.h" />
 		<Unit filename="include/qdisc.h" />
@@ -105,7 +106,6 @@
 		<Unit filename="src/grouter/ospf.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/grouter/ospf.h" />
 		<Unit filename="src/grouter/packetcore.c">
 			<Option compilerVar="CC" />
 		</Unit>

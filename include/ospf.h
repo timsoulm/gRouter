@@ -45,7 +45,7 @@ typedef struct ospf_hello_pkt{
 typedef struct ospfhdr_lsa{ //Reviewed
 	short ls_age;
 	short ls_type;
-	int ls_id;
+    int ls_id;
 	int ad_router;
 	int ls_seq_num;
 	short ls_checksum;
@@ -62,12 +62,12 @@ typedef struct ospfhdr_lsa{ //Reviewed
 */
 
 typedef struct lsupdate_entry{
-	int link_id; //Network Address
-	int local_data; //Router address for any-to-any, Network mask for stub
+	char[4] link_id; //Network Address
+	char[4] link_data; //Router address for any-to-any, Network mask for stub
 	char link_type; //Any-to-any or STUB
 	int zeros_in_update;
 	char zeros_in_update2;
-	short metrics;
+	short metric;
 } lsupdate_entry;
 
 typedef struct lsupdate_pkt_t{
@@ -83,4 +83,4 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt);
 void create_lsupdate_packet(lsupdate_pkt_t* lsupdate_pkt, short pkt_length, int src_ip);
 void broadcast_lsupdate_packet(void);
 void OSPFSendHelloPacket(void);
-void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length, int src_ip);
+void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length);
