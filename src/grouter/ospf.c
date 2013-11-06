@@ -269,7 +269,7 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
     ospf_neighbor_t *curr;
     char tmpbuf[MAX_TMPBUF_LEN];
     ip_packet_t *ip_pkt = (ip_packet_t *)in_pkt->data.data;
-    lsupdate_pkt_t *lsupdate_pkt = (lsupdate_pkt_t *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
+    lsupdate_pkt_t *lsupdate_pkt = (lsupdate_pkt_t *)((uchar *)ip_pkt + ip_pkt->ip_hdr_len*4);
     int incoming_router_id, incoming_seq_num, incoming_num_of_links;
     int *link_id_array;
     lsupdate_entry entry;
@@ -345,7 +345,9 @@ void OSPFbroadcastPacket(gpacket_t *out_pkt, int PacketSize)
 
 int GetNumberOfKnownNeighbours(void)
 {
-    NumberOfKnownNeighbours = 0;
+
+    int NumberOfKnownNeighbours = 0;
+    ospf_neighbor_t *curr;
     for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
     {
         if(curr->alive == 1)
