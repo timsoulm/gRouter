@@ -14,12 +14,13 @@
 #include "fragment.h"
 #include "packetcore.h"
 #include "gnet.h"
+#include "routingalgorithm.h"
 #include <stdlib.h>
 #include <slack/err.h>
 #include <netinet/in.h>
 #include <string.h>
 
-route_entry_t route_tbl[MAX_ROUTES];       	// routing table
+//route_entry_t route_tbl[MAX_ROUTES];       	// routing table
 mtu_entry_t MTU_tbl[MAX_MTU];		        // MTU table
 
 extern pktcore_t *pcore;

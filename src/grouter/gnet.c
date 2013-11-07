@@ -226,6 +226,21 @@ interface_t *findInterface(int indx)
 	return netarray.elem[indx];
 }
 
+int findInterfaceByIP(uchar *dest_ip_addr)
+{
+	for (i = 0; i < MAX_INTERFACES; i++)
+	{
+		if(netarray.elem[i] != NULL)
+		{
+			if(IP_COMPARE(dest_ip_addr, netarray.elem[i]->ip_addr) == 0)
+			{
+				return netarray.elem[i]->interface_id;
+			}
+		}
+	}
+	return EXIT_FAILURE;
+}
+
 void printHorLine(int mode)
 {
 	int i, imax;
