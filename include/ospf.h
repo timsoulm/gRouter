@@ -26,7 +26,7 @@ struct ospf_neighbor_i{
 	int interface_id;
 	int alive;
 	int time_since_hello;
-	int type;
+	char type;
 	struct ospf_neighbor_i *next;
 };
 
@@ -62,14 +62,13 @@ typedef struct ospfhdr_lsa{ //Reviewed
 } ospf_lsrequest;
 */
 
-typedef struct lsupdate_entry{
+typedef struct lsupdate_entry_t{
 	int link_id; //Network Address
 	int link_data; //Router address for any-to-any, Network mask for stub
 	char link_type; //Any-to-any or STUB
-	int zeros_in_update;
-	char zeros_in_update2;
+	char zeros_in_update[5];
 	short metric;
-} lsupdate_entry;
+} lsupdate_entry_t;
 
 typedef struct lsupdate_pkt_t{
 	ospfhdr_t common_header;
@@ -81,7 +80,7 @@ typedef struct lsupdate_pkt_t{
 typedef struct MyRouter_t {
     int id;
     int ls_seq_num;
-    int num_of_interfaces;
+    short num_of_interfaces;
 }MyRouter_t;
 
 void OSPFProcessPacket(gpacket_t *in_pkt);

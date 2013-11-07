@@ -228,6 +228,8 @@ interface_t *findInterface(int indx)
 
 int findInterfaceByIP(uchar *dest_ip_addr)
 {
+    int i;
+
 	for (i = 0; i < MAX_INTERFACES; i++)
 	{
 		if(netarray.elem[i] != NULL)

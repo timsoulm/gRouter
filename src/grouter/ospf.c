@@ -74,7 +74,7 @@ void *hello_message_thread(void *arg)
        		(curr->time_since_hello)++;
        		if(curr->time_since_hello >= 5)
        			curr->alive = 0;
-       			//UpdateRoutingTable();
+       			MyLinkDead((curr->sourc_ip) & 0xFFFFFF00);
        			OSPFSendLSUpdate(); //Inform Routers that link is down and Update database
         }
     }
@@ -99,6 +99,9 @@ void ospf_init()
     MyRouter.id = FindMin(NeighborIPs, NumberOfInterfaces);
     MyRouter.ls_seq_num = 0;
     MyRouter.num_of_interfaces = NumberOfInterfaces;
+    
+    link_id_array = malloc(sizeof(int)*incoming_num_of_links);
+    link_type_array = malloc(sizeof(char)*incoming_num_of_links);
 
     for(i=0;i<NumberOfInterfaces;i++)
     {
@@ -107,15 +110,19 @@ void ospf_init()
         neighbor->source_ip = NeighborIPs[i];
         neighbor->destination_ip = 0;
         neighbor->link_id = NeighborIPs[i] & 0xFFFFFF00;
+        link_id_array[i] = neighbor->link_id;
         neighbor->alive = 0;
         neighbor->next = neighbor_list_head;
         neighbor_list_head = neighbor;
-        neighbor->type = 2; //TODO: Figure out the neighbor type value
+        neighbor->type = STUB; 
     }
-
-// TODO (Mido#1#): Initialize Database ...
-//
-    //InitDbase();
+	
+	dbase.router_id = MyRouter.id;
+	dbase.id_array = link_id_array;
+    	dbase.type_array = link_type_array;
+    	dbase.array_length = incoming_num_of_links;
+	
+	InitDbase(dbase);
 	ospf_init_complete = 1;
 
 	pthread_create(&tid, NULL, &hello_message_thread, NULL);
@@ -123,21 +130,6 @@ void ospf_init()
 
 void create_lsupdate_packet(lsupdate_pkt_t* lsupdate_pkt, short pkt_length, int ls_ID, short NumOfLinks)
 {
-	verbose(1, "[Create_LsUpdate_Packet] :: Executes\n");
-	ospfhdr_t* common_header;
-	ospfhdr_lsa* lsa_header;
-	short zeros_in_pkt;
-	short num_links;
-
-	int i;
-	lsupdate_entry* ad;
-	uchar network;
-	uchar network_mask = 0x00FFFFFF;
-	char tmpbuf[MAX_TMPBUF_LEN];
-	ospf_neighbor_t *curr;
-
-	int NumOfInt = 0;
-
 	lsupdate_pkt-> common_header.version = 2;
 	lsupdate_pkt-> common_header.type = OSPF_LS_UPDATE;
 	lsupdate_pkt-> common_header.msg_length = htons(pkt_length);
@@ -158,45 +150,40 @@ void OSPFSendLSUpdate(void)
     gpacket_t *out_pkt = (gpacket_t *) malloc(sizeof(gpacket_t));
     ip_packet_t *ipkt;
     lsupdate_pkt_t *lsupdate_pkt;
-    lsupdate_entry* entry;
+    lsupdate_entry_t *entry;
     short PacketSize;
     ospf_neighbor_t *curr;
-    int NumberOfKnownNeighbours;
+    int NumberOfAliveNeighbours;
     char tmpbuf[MAX_TMPBUF_LEN];
     char *is_stub_array;
     int *link_id_array;
     uchar net_mask[] = {0xFF, 0xFF, 0xFF, 0x00};
 
-    verbose(1, "[Send_LSUpdate_Packet]:: Send is starting...");
-
-    PacketSize = sizeof(ospfhdr_t) + sizeof(ospfhdr_lsa)+sizeof(lsupdate_entry)*(MyRouter.num_of_interfaces);
+    //verbose(1, "[Send_LSUpdate_Packet]:: Send is starting...");
+    NumberOfAliveNeighbours = GetNumberOfAliveNeighbours();
+    PacketSize = sizeof(lsupdate_pkt_t) + sizeof(lsupdate_entry_t)*(NumberOfAliveNeighbours);
 
     ipkt = (ip_packet_t *)(out_pkt->data.data);
     ipkt->ip_hdr_len = 5;
     out_pkt->frame.src_interface = 0;
 
     lsupdate_pkt = (lsupdate_pkt_t *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
-    create_lsupdate_packet(lsupdate_pkt, PacketSize, MyRouter.id, MyRouter.num_of_interfaces);
+    create_lsupdate_packet(lsupdate_pkt, PacketSize, MyRouter.id, NumberOfAliveNeighbours);
 
-    entry = (lsupdate_entry *) ((uchar *)ipkt + (ipkt->ip_hdr_len)*4 + sizeof(lsupdate_pkt_t));
-
-    verbose(1, "[Send_LSUpdate_Packet]:: Just before the For Loop...");
+    entry = (lsupdate_entry_t *) ((uchar *)ipkt + (ipkt->ip_hdr_len)*4 + sizeof(lsupdate_pkt_t));
 
     for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
     {
-        entry->link_id = gHtonl(tmpbuf, &(curr->link_id));
-        if(curr->type == STUB) {
+        COPY_IP(&(entry->link_id), gHtonl(tmpbuf, &(curr->link_id)));
+        if((curr->type == ANY_TO_ANY) && (curr->alive == 1)) {
             COPY_IP(&(entry->link_data), gHtonl(tmpbuf, &(curr->source_ip)));
-        } else if(curr->type == ANY_TO_ANY) {
+        } else if(curr->type == STUB) {
             COPY_IP(&(entry->link_data), gHtonl(tmpbuf, net_mask));
         }
-        entry->link_type = htons(curr->type);
+        entry->link_type = curr->type;
         entry->metric = htons(1);
-        verbose(1, "[Send_LSUpdate_Packet]:: INSIDE LOOP >>>>>>>>>>>>");
-        entry = entry + sizeof(entry);
+        entry = (lsupdate_entry_t *)((uchar *)entry + sizeof(lsupdate_entry_t));
     }
-    verbose(1, "[Send_LSUpdate_Packet]:: Made it after the For Loop...");
-
 
     OSPFbroadcastPacket(out_pkt, PacketSize);
     (MyRouter.ls_seq_num)++;
@@ -213,7 +200,7 @@ void OSPFSendHelloPacket(void)
     int NumberOfKnownNeighbours;
     char tmpbuf[MAX_TMPBUF_LEN];
 
-    verbose(1, "send hello packet starting");
+    //verbose(1, "send hello packet starting");
 
     NumberOfKnownNeighbours = GetNumberOfKnownNeighbours();
     PacketSize = 44 + sizeof(int)*NumberOfKnownNeighbours;
@@ -245,7 +232,6 @@ void OSPFProcessHelloMsg(gpacket_t *in_pkt)
 
     //if linked list isnt initialized yet we dont want to accept any hello messages
     if(ospf_init_complete==0) return;
-    verbose(1, "[OSPFProcessHelloMsg] :: Executes\n");
     for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
     {
         if(curr->interface_id == in_pkt->frame.src_interface)
@@ -260,7 +246,7 @@ void OSPFProcessHelloMsg(gpacket_t *in_pkt)
             } else {
                 curr->alive = 1;
                 curr->time_since_hello = 0;
-                //UpdateRoutingTable();
+                MyLinkAlive(curr->sourc_ip) & 0xFFFFFF00));
                 OSPFSendLSUpdate(); //Inform Routers that link is down and Update database
             }
             break;
@@ -277,7 +263,7 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
     lsupdate_pkt_t *lsupdate_pkt = (lsupdate_pkt_t *)((uchar *)ip_pkt + ip_pkt->ip_hdr_len*4);
     int incoming_router_id, incoming_seq_num, incoming_num_of_links;
     int *link_id_array;
-    lsupdate_entry entry;
+    lsupdate_entry_t *entry;
     int PacketSize;
 
     //if linked list isnt initialized yet we dont want to accept LSUpdates
@@ -285,7 +271,7 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
 
     incoming_router_id = gNtohl(tmpbuf, &(lsupdate_pkt->lsa_header.ls_id));
     incoming_seq_num = gNtohl(tmpbuf, &(lsupdate_pkt->lsa_header.ls_seq_num));
-/*
+
     if(EntryExists(incoming_router_id) == 1)
     {
         if(SeqNum(incoming_router_id) >= incoming_seq_num)
@@ -300,7 +286,7 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
     link_id_array = malloc(sizeof(int)*incoming_num_of_links);
     link_type_array = malloc(sizeof(char)*incoming_num_of_links);
 
-    entry = ipkt + (ipkt->ip_hdr_len)*4 + sizeof(ospfhdr_t) + sizeof(ospfhdr_lsa);
+    entry = ipkt + (ipkt->ip_hdr_len)*4 + sizeof(lsupdate_entry_t);
 
     for(i = 0; i <num_of_links; i++)
     {
@@ -308,7 +294,7 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
         is_stub_array[i] = entry->link_type;
         entry = entry + sizeof(entry);
     }
-/*
+
     dbase.router_id = incoming_router_id;
     dbase.seq_num = incoming_seq_num;
     dbase.id_array = link_id_array;
@@ -323,9 +309,9 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
     {
         CreateEntry(dbase);
     }
-*/  PacketSize = ntohs(lsupdate_pkt->common_header.msg_length);
+    PacketSize = ntohs(lsupdate_pkt->common_header.msg_length);
 
-     //IPBroadcastPacket(in_pkt, PacketSize, OSPF_PROTOCOL); //TODO: We're naively bropadcast the incoming packet
+    IPBroadcastPacket(in_pkt, PacketSize, OSPF_PROTOCOL); 
 }
 
 void OSPFbroadcastPacket(gpacket_t *out_pkt, int PacketSize)
@@ -380,3 +366,24 @@ int FindMin(int* array, int size)
 
     return minimum;
 }
+
+int GetNumberOfAliveNeighbours(void)
+{
+    int NumberOfAliveNeighbours = 0;
+    ospf_neighbor_t *curr;
+    
+    for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
+    {
+    	switch(curr->type) {
+    	case(STUB):
+    		NumberOfAliveNeighbours++;
+    		break;
+        case(ANY_TO_ANY):
+        	if(curr->alive == 1) NumberOfAliveNeighbours++;
+        	break;
+        }
+        
+    }
+    return NumberOfAliveNeighbours;
+}
+	
