@@ -29,7 +29,6 @@ struct ospf_neighbor_i{
 	char type;
 	struct ospf_neighbor_i *next;
 };
-
 typedef struct ospf_neighbor_i ospf_neighbor_t;
 
 typedef struct ospf_hello_pkt{
@@ -53,14 +52,14 @@ typedef struct ospfhdr_lsa{ //Reviewed
 	short ls_length;
 } ospfhdr_lsa;
 
-/*This struct seems useless
- * typedef struct ospf_lsrequest{
+
+typedef struct ospf_lsrequest{
 	ospfhdr_t common_header;
 	int ls_type;
 	int link_id;
 	int ad_router_ip;
 } ospf_lsrequest;
-*/
+
 
 typedef struct lsupdate_entry_t{
 	int link_id; //Network Address
@@ -81,7 +80,7 @@ typedef struct MyRouter_t {
     int id;
     int ls_seq_num;
     short num_of_interfaces;
-}MyRouter_t;
+} MyRouter_t;
 
 void OSPFProcessPacket(gpacket_t *in_pkt);
 void OSPFProcessHelloMsg(gpacket_t *in_pkt);

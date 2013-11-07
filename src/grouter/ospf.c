@@ -14,6 +14,7 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <string.h>
+#include "database.h"
 
 ospf_neighbor_t *neighbor_list_head;
 MyRouter_t MyRouter;
@@ -74,7 +75,7 @@ void *hello_message_thread(void *arg)
        		(curr->time_since_hello)++;
        		if(curr->time_since_hello >= 5)
        			curr->alive = 0;
-       			MyLinkDead((curr->sourc_ip) & 0xFFFFFF00);
+       			updateDeadInterface((curr->sourc_ip) & 0xFFFFFF00);
        			OSPFSendLSUpdate(); //Inform Routers that link is down and Update database
         }
     }
@@ -88,6 +89,7 @@ void ospf_init()
     int *NeighborIDs;
     int *NeighborIPs;
     ospf_neighbor_t *neighbor;
+    int *link_id_array;
     pthread_t tid;
 
     verbose(1, "opsf_init starting");
@@ -99,9 +101,8 @@ void ospf_init()
     MyRouter.id = FindMin(NeighborIPs, NumberOfInterfaces);
     MyRouter.ls_seq_num = 0;
     MyRouter.num_of_interfaces = NumberOfInterfaces;
-    
-    link_id_array = malloc(sizeof(int)*incoming_num_of_links);
-    link_type_array = malloc(sizeof(char)*incoming_num_of_links);
+
+    link_id_array = (int *)malloc(sizeof(int)*incoming_num_of_links);
 
     for(i=0;i<NumberOfInterfaces;i++)
     {
@@ -114,15 +115,10 @@ void ospf_init()
         neighbor->alive = 0;
         neighbor->next = neighbor_list_head;
         neighbor_list_head = neighbor;
-        neighbor->type = STUB; 
+        neighbor->type = STUB;
     }
-	
-	dbase.router_id = MyRouter.id;
-	dbase.id_array = link_id_array;
-    	dbase.type_array = link_type_array;
-    	dbase.array_length = incoming_num_of_links;
-	
-	InitDbase(dbase);
+
+	init_database(MyRouter.id, link_id_array, incoming_num_of_links);
 	ospf_init_complete = 1;
 
 	pthread_create(&tid, NULL, &hello_message_thread, NULL);
@@ -246,7 +242,7 @@ void OSPFProcessHelloMsg(gpacket_t *in_pkt)
             } else {
                 curr->alive = 1;
                 curr->time_since_hello = 0;
-                MyLinkAlive(curr->sourc_ip) & 0xFFFFFF00));
+                updateLiveInterface(((curr->sourc_ip) & 0xFFFFFF00));
                 OSPFSendLSUpdate(); //Inform Routers that link is down and Update database
             }
             break;
@@ -259,12 +255,15 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
 {
     ospf_neighbor_t *curr;
     char tmpbuf[MAX_TMPBUF_LEN];
-    ip_packet_t *ip_pkt = (ip_packet_t *)in_pkt->data.data;
+    ip_packet_t *ip_pkt = (ip_packet_t *)(in_pkt->data.data);
     lsupdate_pkt_t *lsupdate_pkt = (lsupdate_pkt_t *)((uchar *)ip_pkt + ip_pkt->ip_hdr_len*4);
-    int incoming_router_id, incoming_seq_num, incoming_num_of_links;
+    int incoming_router_id, incoming_seq_num;
+    short incoming_num_of_links;
     int *link_id_array;
     lsupdate_entry_t *entry;
     int PacketSize;
+    char *link_type_array;
+    dbase_t dbase;
 
     //if linked list isnt initialized yet we dont want to accept LSUpdates
     if(ospf_init_complete==0)return;
@@ -274,7 +273,7 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
 
     if(EntryExists(incoming_router_id) == 1)
     {
-        if(SeqNum(incoming_router_id) >= incoming_seq_num)
+        if(checkSeqNum(incoming_router_id) >= incoming_seq_num)
         {
             // Drop Packet
             free(in_pkt);
@@ -282,36 +281,29 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
         }
     }
 
-    incoming_num_of_links = gNtohl(tmpbuf, &(lsupdate_pkt->num_links));
-    link_id_array = malloc(sizeof(int)*incoming_num_of_links);
-    link_type_array = malloc(sizeof(char)*incoming_num_of_links);
+    incoming_num_of_links = ntohs(lsupdate_pkt->num_links);
+    link_id_array = (int *)malloc(sizeof(int)*incoming_num_of_links);
+    link_type_array = (char *)malloc(sizeof(char)*incoming_num_of_links);
 
-    entry = ipkt + (ipkt->ip_hdr_len)*4 + sizeof(lsupdate_entry_t);
+    entry = (lsupdate_entry_t *) ((uchar *)ipkt + (ipkt->ip_hdr_len)*4 + sizeof(lsupdate_pkt_t));
 
     for(i = 0; i <num_of_links; i++)
     {
-        COPY_IP(&link_id_array[i] , gNtohl(tmpbuf, entry->link_id));
-        is_stub_array[i] = entry->link_type;
-        entry = entry + sizeof(entry);
+        COPY_IP(&link_id_array[i] , gNtohl(tmpbuf, &(entry->link_id)));
+        link_type_array[i] = entry->link_type;
+        entry = (lsupdate_entry_t *)((uchar *)entry + sizeof(lsupdate_entry_t));
     }
-
-    dbase.router_id = incoming_router_id;
-    dbase.seq_num = incoming_seq_num;
-    dbase.id_array = link_id_array;
-    dbase.type_array = link_type_array;
-    dbase.array_length = incoming_num_of_links;
 
     if(EntryExists(incoming_router_id) == 1)
     {
-        UpdateEntry(dbase);
-    }
+        updateDBEntry(incoming_router_id, link_id_array, link_type_array, incoming_num_of_links, incoming_seq_num);
     } else if(EntryExists(incoming_router_id) == 0)
     {
-        CreateEntry(dbase);
+        addNewDBEntry(incoming_router_id, link_id_array, link_type_array, incoming_num_of_links, incoming_seq_num);
     }
     PacketSize = ntohs(lsupdate_pkt->common_header.msg_length);
 
-    IPBroadcastPacket(in_pkt, PacketSize, OSPF_PROTOCOL); 
+    IPBroadcastPacket(in_pkt, PacketSize, OSPF_PROTOCOL);
 }
 
 void OSPFbroadcastPacket(gpacket_t *out_pkt, int PacketSize)
@@ -371,7 +363,7 @@ int GetNumberOfAliveNeighbours(void)
 {
     int NumberOfAliveNeighbours = 0;
     ospf_neighbor_t *curr;
-    
+
     for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
     {
     	switch(curr->type) {
@@ -382,8 +374,8 @@ int GetNumberOfAliveNeighbours(void)
         	if(curr->alive == 1) NumberOfAliveNeighbours++;
         	break;
         }
-        
+
     }
     return NumberOfAliveNeighbours;
 }
-	
+
