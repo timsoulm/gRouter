@@ -81,6 +81,7 @@ typedef struct lsupdate_pkt_t{
 typedef struct MyRouter_t {
     int id;
     int ls_seq_num;
+    int num_of_interfaces;
 }MyRouter_t;
 
 void OSPFProcessPacket(gpacket_t *in_pkt);
@@ -92,3 +93,4 @@ void OSPFSendHelloPacket(void);
 void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length);
 int FindMin(int* array, int size);
 void OSPFbroadcastPacket(gpacket_t *out_pkt, int PacketSize);
+void OSPFSendLSUpdate(void);
