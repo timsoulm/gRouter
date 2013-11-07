@@ -23,7 +23,7 @@ void createDBRecord(ls_database_t* entry, int router_id, int num_neighbors, int 
 		head = curr;
 	}
 	curr = head;
-	
+
 	tmp = entry;
 	tmp->router_id = router_id;
 	tmp->seq_num = seq_num;
@@ -71,7 +71,7 @@ int* getLinkIDs(void)
 	neighbor = database->neighbor_list;
 	printf("Made it to just before loop \n");
 	for(i = 0; i < length; i++)
-	{	
+	{
 		result[i] = neighbor->link_id;
 		neighbor = neighbor->next;
 	}
@@ -88,7 +88,7 @@ int* getStubs(void)
 	neighbor = database->neighbor_list;
 	printf("Made it to just before loop \n");
 	for(i = 0; i < length; i++)
-	{	
+	{
 		result[i] = neighbor->is_stub;
 		neighbor = neighbor->next;
 	}
@@ -116,7 +116,7 @@ ls_database_t* getDatabase(void)
 /*
 * Database Functions
 */
-neighbor_t* generateNeighborList(int* neighbors_linkids, int num_neighbors)
+neighbor_t* generateNeighborList(int* neighbors_linkids, char* is_stubs ,int num_neighbors)
 {
 	neighbor_t* head;
 	neighbor_t* curr;
@@ -129,6 +129,7 @@ neighbor_t* generateNeighborList(int* neighbors_linkids, int num_neighbors)
 		curr = (neighbor_t *)malloc(sizeof(neighbor_t));
 		curr->link_id = neighbors_linkids[i];
 		curr->router_id = 0;
+		curr->is_stub = is_stubs[i];
 		curr->next = head;
 		head = curr;
 	}
@@ -139,9 +140,11 @@ neighbor_t* generateNeighborList(int* neighbors_linkids, int num_neighbors)
 void init_database(int router_id, int* neighbors_linkids, int num_neighbors)
 {
 	ls_database_t* tmp;
-	neighbor_t* head; 
-	head = generateNeighborList(neighbors_linkids, num_neighbors);
-	
+	neighbor_t* head;
+	char* null_stubs;
+	null_stubs = (char*)malloc(sizeof(char)*num_neighbors);
+	head = generateNeighborList(neighbors_linkids, null_stubs,num_neighbors);
+
 	tmp = (ls_database_t*)malloc(sizeof(ls_database_t));
 	tmp->router_id = router_id;
 	tmp->seq_num = 0;
@@ -164,7 +167,7 @@ int checkSeqNum(int router_id) //WORKS
 	}
 	return 0; //Returns 0 if no entry for it
 }
-int exists(int router_id) //WORKS
+int EntryExists(int router_id) //WORKS
 {
 	int result;
 	ls_database_t* tmp_database_ptr;
@@ -178,15 +181,15 @@ int exists(int router_id) //WORKS
 	}
 	return 0; //Doesn't exist
 }
-void addNewDBEntry(int router_id, int* neighbors, int num_neighbors, int seq_num)
+void addNewDBEntry(int router_id, int* neighbors, char* is_stubs,int num_neighbors, int seq_num)
 {
 	ls_database_t* tmp_database_ptr;
 	ls_database_t* new_entry;
-	neighbor_t* head; 
+	neighbor_t* head;
 
 	new_entry = (ls_database_t*)malloc(sizeof(ls_database_t));
 
-	head = generateNeighborList(neighbors, num_neighbors);
+	head = generateNeighborList(neighbors, is_stubs, num_neighbors);
 
 	new_entry->seq_num = seq_num;
 	new_entry->next_record = NULL;
@@ -201,13 +204,13 @@ void addNewDBEntry(int router_id, int* neighbors, int num_neighbors, int seq_num
 			break;
 		}
 	}
-
+    indexDatabase();
 }
-void updateDBEntry(int router_id, int* neighbors, int num_neighbors, int seq_num) //WORKS
+void updateDBEntry(int router_id, int* neighbors, char* is_stubs ,int num_neighbors, int seq_num) //WORKS
 {
 	ls_database_t* tmp_database_ptr;
-	neighbor_t* head; 
-	head = generateNeighborList(neighbors, num_neighbors);
+	neighbor_t* head;
+	head = generateNeighborList(neighbors, is_stubs ,num_neighbors);
 
 
 	for(tmp_database_ptr = database; tmp_database_ptr != NULL; tmp_database_ptr = tmp_database_ptr->next_record)
@@ -219,6 +222,8 @@ void updateDBEntry(int router_id, int* neighbors, int num_neighbors, int seq_num
 			break;
 		}
 	}
+	indexDatabase();
+
 }
 void updateDeadInterface(int link_id)
 {
@@ -234,18 +239,20 @@ void updateDeadInterface(int link_id)
 			break;
 		}
 		if(curr->link_id == link_id)
-		{			
+		{
 			prev->next = curr->next;
 			free(curr);
 			break;
 		}
 		prev = curr;
 	}
+    indexDatabase();
+
 }
 void updateLiveInterface(int link_id)
 {
     neighbor_t* curr;
-    neighbor_t* new; 
+    neighbor_t* new;
     for(curr = database->neighbor_list; curr != NULL; curr = curr->next)
     {
         if(curr->next == NULL)
@@ -254,10 +261,11 @@ void updateLiveInterface(int link_id)
             curr->next = new;
             new->link_id = link_id;
             new->router_id = NULL;
-	    new->next = NULL;		
+	    new->next = NULL;
 	    break;
         }
     }
+    indexDatabase();
 }
 void indexDatabase(void)
 {
@@ -271,7 +279,7 @@ void indexDatabase(void)
 	{
 		for(nei_stable = db_stable->neighbor_list; nei_stable != NULL; nei_stable = nei_stable->next)
 		{
-			nei_stable->router_id = NULL;		
+			nei_stable->router_id = NULL;
 		}
 	}
 
@@ -355,7 +363,7 @@ int find_linkid_of_neighbor(int router_id) //find the link ID of the current rou
 }
 /*int main()
 {
-	
+
 	//neighbor_t* neighbor;
 	//neighbor = (neighbor_t*)malloc(sizeof(neighbor_t));
 	//neighbor->link_id = 1;
@@ -370,11 +378,11 @@ int find_linkid_of_neighbor(int router_id) //find the link ID of the current rou
 	ls_database_t* new_record = (ls_database_t*)malloc(sizeof(ls_database_t));
 	ls_database_t* new_record2 = (ls_database_t*)malloc(sizeof(ls_database_t));
 	ls_database_t* new_record3 = (ls_database_t*)malloc(sizeof(ls_database_t));
-	
+
 	int array[] = {1,2,3};
 	init_database(1, array ,3);
 	printf("\n");
-	
+
 	int array2[] = {1,2,3,7};
 	addNewDBEntry(2, array2, 4, 4);
 
@@ -382,7 +390,7 @@ int find_linkid_of_neighbor(int router_id) //find the link ID of the current rou
 	updateDBEntry(2, array3, 2, 5);
 	//printDatabase();
 	//printf("\n");
-	
+
 	printf("Database before index:  \n");
 	updateDBEntry(2, array2, 4, 6);
 	//printDatabase();
@@ -399,7 +407,7 @@ int find_linkid_of_neighbor(int router_id) //find the link ID of the current rou
 	//printDatabase();
 	//printf("\n");
 
-	
+
 	printf("Database after second index:  \n");
 	indexDatabase();
 	//printDatabase();
@@ -418,7 +426,7 @@ int find_linkid_of_neighbor(int router_id) //find the link ID of the current rou
 	int* result;
 	result = find_all_linkids();
 	int max = getSize(result);
-	
+
 	for(i = 0; i < max; i++)
 	{
 
@@ -449,8 +457,8 @@ int find_linkid_of_neighbor(int router_id) //find the link ID of the current rou
 
 	printf("Database after indexing  \n");
 
-	
+
 	printf("\n");*/
-	
+
 	//return 1;
 //}

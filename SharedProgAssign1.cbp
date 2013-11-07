@@ -35,6 +35,7 @@
 		<Unit filename="include/classifier.h" />
 		<Unit filename="include/classspec.h" />
 		<Unit filename="include/cli.h" />
+		<Unit filename="include/database.h" />
 		<Unit filename="include/device.h" />
 		<Unit filename="include/devicedefs.h" />
 		<Unit filename="include/ethernet.h" />
@@ -71,6 +72,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/grouter/console.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/grouter/database.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="src/grouter/ethernet.c">
