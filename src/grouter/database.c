@@ -222,20 +222,42 @@ void updateDBEntry(int router_id, int* neighbors, int num_neighbors, int seq_num
 }
 void updateDeadInterface(int link_id)
 {
-	ls_database_t* tmp_db_ptr;
 	neighbor_t* curr;
-	neighbor_t* prev;
+	neighbor_t* prev = database->neighbor_list;
 
 	for(curr = database->neighbor_list; curr != NULL; curr = curr->next)
 	{
-		if(curr->link_id == link_id)
+		if(database->neighbor_list->link_id == link_id)
 		{
-			prev->next = curr-> next;
+			database->neighbor_list = curr->next;
+			free(curr);
+			break;
+		}
+		if(curr->link_id == link_id)
+		{			
+			prev->next = curr->next;
 			free(curr);
 			break;
 		}
 		prev = curr;
 	}
+}
+void updateLiveInterface(int link_id)
+{
+    neighbor_t* curr;
+    neighbor_t* new; 
+    for(curr = database->neighbor_list; curr != NULL; curr = curr->next)
+    {
+        if(curr->next == NULL)
+        {
+            new = (neighbor_t*)malloc(sizeof(neighbor_t));
+            curr->next = new;
+            new->link_id = link_id;
+            new->router_id = NULL;
+	    new->next = NULL;		
+	    break;
+        }
+    }
 }
 void indexDatabase(void)
 {
@@ -245,6 +267,13 @@ void indexDatabase(void)
 	neighbor_t* nei_stable;
 	neighbor_t* nei_dynamic;
 
+	for(db_stable = database; db_stable != NULL; db_stable = db_stable->next_record)
+	{
+		for(nei_stable = db_stable->neighbor_list; nei_stable != NULL; nei_stable = nei_stable->next)
+		{
+			nei_stable->router_id = NULL;		
+		}
+	}
 
 
 	for(db_stable = database; db_stable != NULL; db_stable = db_stable->next_record)
