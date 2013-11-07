@@ -1,8 +1,6 @@
 #include "routingalgorithm.h"
-#include "ospf.h"
-#include "gnet.h"
-#include "routetable.h"
-#include "database.h"
+//#include "gnet.h"
+//#include "routetable.h"
 
 int *IndexToRouterID;
 
@@ -28,7 +26,7 @@ void createMap(int **cost_matrix,ls_database_t *list_head,int sizeOfList)
 	int routerID;
 
 	IndexToRouterID = (int*)malloc(sizeof(int)*sizeOfList);
-	
+
 	i = 0;
 	for(curr=list_head; curr!= NULL; curr = curr->next_record)
 	{
@@ -91,12 +89,13 @@ void calculateNextHops(int **cost_matrix, int size, int *next_hops, int my_route
 		for(i=0;i<size;i++)
 		{
 			if(selected[i]==0)
-			{                                             
+			{                                           
 				newdist=dc+cost_matrix[current][i];
 				if(newdist<distance[i])
 				{
 					distance[i]=newdist;
 					preced[i]=current;
+
 				}
 				if(distance[i]<smalldist)
 				{
@@ -132,54 +131,60 @@ void calculateNextHops(int **cost_matrix, int size, int *next_hops, int my_route
 		}
 	}
 	next_hops[my_router_id] = my_router_id;
+		
 
 	// Convert indexes to Router IDs
 	for(i=0;i<size;i++)
 	{
-		next_hops[i] = IndexToRouterID[i];
+		next_hops[i] = IndexToRouterID[next_hops[i]];
 	}
 	
 }
 
-void addRoutingEntries(int *next_hops, int size, ls_database_t *list_head)
+void addRoutingEntries(int *next_hops)
 {
 	int i;
-	uchar *nwork;
-	uchar *nmask;
-	uchar *nhop;
+	int index;
+	char *nwork;
+	char nmask[] = {0xFF,0xFF,0xFF,0x00};
+	char *nhop;
 	int interface;
 	int next_hop_router_id;
 	int destination_router_id;
 	int next_hop_link_id;
 	int destination_link_id;
 	ls_database_t *curr;
+	
+	int *linkIDs = find_all_linkids();
+	int size = getSize(linkIDs);
+	int sizeOfRouterIDtable;
 
-	for(i = 0; i<size; i++)
+	for(i=0; i<size; i++)
 	{
-		//lookup destination router id from table
-		destination_router_id = IndexToRouterID[i];
-		//lookup next hop router id from table
-		next_hop_router_id = next_hops[i];
+		// get router id from link id
+		destination_router_id = find_router_id(linkIDs[i]);
 		
-		for(curr=list_head; curr!= NULL; curr = curr->next_record)
-		{
-			if(curr->router_id == destination_router_id)
-			{
-				destination_link_id = curr->link_id;
-			}
-			if(curr->router_id == next_hop_link_id)
-			{
-				next_hop_link_id = curr->link_id;
-			}
-		}
+		// look up next hop router id
+		sizeOfRouterIDtable = getSizeOfDB();
+
+		index = getIndexFromRouterID(destination_router_id, sizeOfRouterIDtable);
+
+		next_hop_router_id = next_hops[index];
 		
-		nmask = (uchar*)malloc(sizeof(char)*4);
-		nmask = {0xFF,0xFF,0xFF,0x00};
-		nwork = (uchar*)&destination_link_id;
-		nhop = (uchar*)&next_hop_link_id;
-		interface = findInterfaceByIP(nwork);
+
+		// look up next hop link id
+		next_hop_link_id = find_linkid_of_neighbor(next_hop_router_id);
+
+		// look up destination link id
+		destination_link_id = linkIDs[i];
+
+		nwork = (char*)&destination_link_id;
+		nhop = (char*)&next_hop_link_id;
+		//interface = findInterfaceByIP(nhop);
 		
-		addRouteEntry(route_tbl,nwork,nmask,nhop,interface);
+		//addRouteEntry(route_tbl,nwork,nmask,nhop,interface);
+
+		//printf("Destination Link: %d, Next Hop Link: %d\n",destination_link_id,next_hop_link_id);
 	}
 
 }
