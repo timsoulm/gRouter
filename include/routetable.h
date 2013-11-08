@@ -16,7 +16,7 @@
 
 #include "grouter.h"
 
-#define MAX_ROUTES                      20	// maximum route table size
+#define MAX_ROUTES                      100	// maximum route table size
 
 
 /*

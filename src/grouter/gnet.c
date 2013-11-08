@@ -18,12 +18,13 @@
 #include "tap.h"
 #include "tapio.h"
 #include "protocols.h"
+#include "routingalgorithm.h"
 #include <slack/err.h>
 #include <sys/time.h>
 #include <netinet/in.h>
 #include "routetable.h"
 
-extern route_entry_t route_tbl[MAX_ROUTES];
+//extern route_entry_t route_tbl[MAX_ROUTES];
 
 interface_array_t netarray;
 devicearray_t devarray;
@@ -225,7 +226,7 @@ interface_t *findInterface(int indx)
 {
 	return netarray.elem[indx];
 }
-/*
+
 int findInterfaceByIP(uchar *dest_ip_addr)
 {
     int i;
@@ -234,7 +235,7 @@ int findInterfaceByIP(uchar *dest_ip_addr)
 	{
 		if(netarray.elem[i] != NULL)
 		{
-			if(IP_COMPARE(dest_ip_addr, netarray.elem[i]->ip_addr) == 0)
+			if(COMPARE_IP(dest_ip_addr, netarray.elem[i]->ip_addr) == 0)
 			{
 				return netarray.elem[i]->interface_id;
 			}
@@ -242,7 +243,7 @@ int findInterfaceByIP(uchar *dest_ip_addr)
 	}
 	return EXIT_FAILURE;
 }
-*/
+
 void printHorLine(int mode)
 {
 	int i, imax;

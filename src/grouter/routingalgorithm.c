@@ -1,6 +1,6 @@
-/*#include "routingalgorithm.h"
-//#include "gnet.h"
-//#include "routetable.h"
+#include "routingalgorithm.h"
+#include "gnet.h"
+#include "routetable.h"
 
 int *IndexToRouterID;
 
@@ -25,6 +25,8 @@ void createMap(int **cost_matrix,ls_database_t *list_head,int sizeOfList)
 	int neighborID;
 	int routerID;
 
+
+	printRouteTable(route_tbl);
 	IndexToRouterID = (int*)malloc(sizeof(int)*sizeOfList);
 
 	i = 0;
@@ -33,15 +35,19 @@ void createMap(int **cost_matrix,ls_database_t *list_head,int sizeOfList)
 		IndexToRouterID[i] = curr->router_id;
 		i++;
 	}
-	
 	// traverse list and store values in matrix
 	for(curr=list_head; curr!= NULL; curr = curr->next_record)
 	{
 		
 		for(curr2=curr->neighbor_list; curr2!=NULL; curr2 = curr2->next)
 		{
-			int routerID = getIndexFromRouterID(curr->router_id,sizeOfList);
-			int neighborID = getIndexFromRouterID(curr2->router_id,sizeOfList);
+			routerID = getIndexFromRouterID(curr->router_id,sizeOfList);
+			if(curr2->router_id == 0)
+			{
+				neighborID = routerID;
+			} else {
+				neighborID = getIndexFromRouterID(curr2->router_id,sizeOfList);
+			}
 			cost_matrix[routerID][neighborID] = 1;
 		}
 	}
@@ -76,12 +82,14 @@ void calculateNextHops(int **cost_matrix, int size, int *next_hops, int my_route
 	
 	for(i=0;i<size;i++){
 		distance[i]=INFINITE;
+		preced[i]=0;
 	}
 	selected[current]=1;
 	distance[my_router_id]=0;
 	current=my_router_id;
 	//while there are still unselected nodes
 	
+
 	while(!allSelected(selected, size))
 	{
 		smalldist=INFINITE;
@@ -113,6 +121,7 @@ void calculateNextHops(int **cost_matrix, int size, int *next_hops, int my_route
 	{
 		int currentIndex = preced[i];
 		next_hops[i] = my_router_id;
+		
 		while(currentIndex != my_router_id)
 		{
 			if(preced[currentIndex] == my_router_id)
@@ -146,7 +155,7 @@ void addRoutingEntries(int *next_hops)
 	int i;
 	int index;
 	char *nwork;
-	char nmask[] = {0xFF,0xFF,0xFF,0x00};
+	char nmask[] = {0x00,0xFF,0xFF,0xFF};
 	char *nhop;
 	int interface;
 	int next_hop_router_id;
@@ -170,7 +179,7 @@ void addRoutingEntries(int *next_hops)
 		index = getIndexFromRouterID(destination_router_id, sizeOfRouterIDtable);
 
 		next_hop_router_id = next_hops[index];
-		
+
 
 		// look up next hop link id
 		next_hop_link_id = find_linkid_of_neighbor(next_hop_router_id);
@@ -180,13 +189,11 @@ void addRoutingEntries(int *next_hops)
 
 		nwork = (char*)&destination_link_id;
 		nhop = (char*)&next_hop_link_id;
-		//interface = findInterfaceByIP(nhop);
+		interface = findInterfaceByIP(nhop);
 		
-		//addRouteEntry(route_tbl,nwork,nmask,nhop,interface);
+		addRouteEntry(route_tbl,nwork,nmask,nhop,interface);
 
-		//printf("Destination Link: %d, Next Hop Link: %d\n",destination_link_id,next_hop_link_id);
 	}
+	printRouteTable(route_tbl);
 
 }
-
-*/

@@ -356,13 +356,16 @@ int find_router_id(int link_id) //finds router ID that is connected to a specifi
 {
 	ls_database_t* tmp;
 	neighbor_t* dynamic;
-
 	for(tmp = database; tmp != NULL; tmp= tmp->next_record)
 	{
 		for(dynamic = tmp->neighbor_list; dynamic!= NULL; dynamic = dynamic->next)
 		{
-			if(dynamic->link_id == link_id)
-				return dynamic->router_id;
+			if(dynamic->link_id == link_id){
+				if(dynamic->router_id == 0)
+					return tmp->router_id;
+				else
+					return dynamic->router_id;
+			}
 		}
 	}
 

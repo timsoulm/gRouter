@@ -1,6 +1,7 @@
 #include "database.h"
+#include "routetable.h"
 
-//route_entry_t route_tbl[MAX_ROUTES];
+extern route_entry_t route_tbl[MAX_ROUTES];
 
 int getIndexFromRouterID(int routerID, int size);
 void createMap(int **cost_matrix,ls_database_t *list_head,int sizeOfList);

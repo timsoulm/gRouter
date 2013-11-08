@@ -10,11 +10,11 @@
 #include "gnet.h"
 #include "ip.h"
 #include "protocols.h"
+#include "routingalgorithm.h"
 #include <pthread.h>
 #include <sys/time.h>
 #include <stdio.h>
 #include <string.h>
-#include "database.h"
 
 ospf_neighbor_t *neighbor_list_head;
 MyRouter_t MyRouter;
@@ -69,7 +69,7 @@ void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length)
 void *hello_message_thread(void *arg)
 {
 	ospf_neighbor_t *curr;
-
+    int timer = 0;
     sleep(15);
     while(1)
     {
@@ -85,6 +85,16 @@ void *hello_message_thread(void *arg)
        			OSPFSendLSUpdate(); //Inform Routers that link is down and Update database
             }
         }
+        if(timer == 20){
+            OSPFSendLSUpdate();
+        }
+        else if(timer == 200)
+        {
+            OSPFSendLSUpdate();
+            timer = 0;
+        }
+        timer++;
+
         printDatabase();
     }
     return 0;
@@ -270,6 +280,7 @@ void OSPFProcessHelloMsg(gpacket_t *in_pkt)
 void OSPFProcessLSUpdate(gpacket_t *in_pkt)
 {
     ospf_neighbor_t *curr;
+    neighbor_t *curr2;
     char tmpbuf[MAX_TMPBUF_LEN];
     ip_packet_t *ipkt = (ip_packet_t *)(in_pkt->data.data);
     lsupdate_pkt_t *lsupdate_pkt;
@@ -280,6 +291,16 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
     int PacketSize;
     char *link_type_array;
     int i;
+
+    //stuff for djikstras here
+    int sizeOfList;
+    int **cost_matrix;
+    int *next_hops;
+    int j;
+    ls_database_t *database;
+    int myRouterIndex;
+    int myRouterID;
+
     //if linked list isnt initialized yet we dont want to accept LSUpdates
     if(ospf_init_complete==0)return;
 
@@ -321,6 +342,48 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
         addNewDBEntry(incoming_router_id, link_id_array, link_type_array, incoming_num_of_links, incoming_seq_num);
     }
     PacketSize = ntohs(lsupdate_pkt->common_header.msg_length);
+
+    // DJIKSTRAS ALGORITHM STUFF GOES HERE!
+	sizeOfList = getSizeOfDB();
+
+	cost_matrix = (int **)malloc(sizeOfList * sizeof(int *));
+	for(i=0; i<sizeOfList; i++)
+		cost_matrix[i] = (int *)malloc(sizeOfList * sizeof(int));
+	
+	for (i = 0; i < sizeOfList; i++) {
+		for (j = 0; j < sizeOfList; j++) {
+			cost_matrix[i][j] = 9999;
+		}
+    	}
+	
+	database = getDatabase();
+	//Printing loop
+	printf(" <<<<<<<<<<<<<<<<|||||||||||||||||||||||||||||<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> \n");
+	printf("Router ID = %x \n", database->router_id);
+	
+	for(curr2 = database->neighbor_list; curr2 != NULL; curr2 = curr2->next)
+	{
+		printf("neighbor link id: %x \n", curr2->link_id);
+	}
+	createMap(cost_matrix,database,sizeOfList);
+	
+	for (i = 0; i < sizeOfList; i++) {
+		for (j = 0; j < sizeOfList; j++) {
+			printf("%d ",cost_matrix[i][j]);
+		}
+		printf("\n");
+	}
+	next_hops = (int*)malloc(sizeof(int)*sizeOfList);
+	
+	myRouterID = database->router_id;
+	myRouterIndex = getIndexFromRouterID(myRouterID, sizeOfList);
+	calculateNextHops(cost_matrix,sizeOfList,next_hops,myRouterIndex);
+	
+
+	//for(i=0; i<sizeOfList; i++)
+		//printf("Node: %d NextHop: %x\n",i,next_hops[i]);
+	
+	addRoutingEntries(next_hops);
 
     IPBroadcastPacket(in_pkt, PacketSize, OSPF_PROTOCOL);
 }
