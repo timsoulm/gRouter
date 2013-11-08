@@ -1,4 +1,4 @@
-#include "routingalgorithm.h"
+/*#include "routingalgorithm.h"
 //#include "gnet.h"
 //#include "routetable.h"
 
@@ -188,3 +188,5 @@ void addRoutingEntries(int *next_hops)
 	}
 
 }
+
+*/

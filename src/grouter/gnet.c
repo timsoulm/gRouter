@@ -225,7 +225,7 @@ interface_t *findInterface(int indx)
 {
 	return netarray.elem[indx];
 }
-
+/*
 int findInterfaceByIP(uchar *dest_ip_addr)
 {
     int i;
@@ -242,7 +242,7 @@ int findInterfaceByIP(uchar *dest_ip_addr)
 	}
 	return EXIT_FAILURE;
 }
-
+*/
 void printHorLine(int mode)
 {
 	int i, imax;
@@ -834,7 +834,6 @@ void *GNETHandler(void *outq)
 				COPY_MAC(in_pkt->data.header.dst, mac_addr);
 			else if (COMPARE_IP(gNtohl(tmpbuf, ip_pkt->ip_dst), bcast_ip) == 0 )
 			{
-				verbose(1,"REACHED HERE");
 				COPY_MAC(in_pkt->data.header.dst, bcast_mac);
 			}
 			else

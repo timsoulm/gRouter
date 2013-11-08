@@ -30,6 +30,7 @@ int* getStubs(void);
 int getSizeOfDB(void);
 neighbor_t* generateNeighborList(int* neighbors_linkids, char* is_stubs, int num_neighbors);
 void init_database(int router_id, int* neighbors_linkids, int num_neighbors);
+void updateMySeqNum();
 int checkSeqNum(int router_id);
 int EntryExists(int router_id);
 void addNewDBEntry(int router_id, int* neighbors, char* is_stubs, int num_neighbors, int seq_num);

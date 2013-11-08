@@ -37,12 +37,12 @@ void printDatabase(void) //For debugging purposes
 	int i;
 	for(tmp_database_ptr = database; tmp_database_ptr != NULL; tmp_database_ptr = tmp_database_ptr->next_record)
 	{
-		printf("Router ID: %d\n", tmp_database_ptr->router_id);
+		printf("Router ID: %x with Sequence Number: %d\n", tmp_database_ptr->router_id, tmp_database_ptr->seq_num);
 		i = 0;
 		for(neighbor_ptr = tmp_database_ptr->neighbor_list; neighbor_ptr != NULL; neighbor_ptr = neighbor_ptr->next)
 		{
 			i++;
-			printf("Neighbor %d: Link ID = %d, Router ID = %d \n", i, neighbor_ptr->link_id, neighbor_ptr->router_id);
+			printf("Neighbor %d: Link ID = %x, Router ID = %x \n", i, neighbor_ptr->link_id, neighbor_ptr->router_id);
 		}
 	}
 }
@@ -155,17 +155,19 @@ void init_database(int router_id, int* neighbors_linkids, int num_neighbors)
 
 int checkSeqNum(int router_id) //WORKS
 {
-	int result;
 	ls_database_t* tmp_database_ptr;
 	for(tmp_database_ptr = database; tmp_database_ptr != NULL; tmp_database_ptr = tmp_database_ptr->next_record)
 	{
 		if(router_id == tmp_database_ptr->router_id)
 		{
-			return tmp_database_ptr->seq_num;
-			break;
+			return (tmp_database_ptr->seq_num);
 		}
 	}
 	return 0; //Returns 0 if no entry for it
+}
+void updateMySeqNum()
+{
+	database->seq_num++;
 }
 int EntryExists(int router_id) //WORKS
 {
@@ -176,7 +178,19 @@ int EntryExists(int router_id) //WORKS
 		if(router_id == tmp_database_ptr->router_id)
 		{
 			return 1;//Exists
-			break;
+		}
+	}
+	return 0; //Doesn't exist
+}
+int linkExists(int link_id) //WORKS
+{
+	int result;
+	neighbor_t* curr;
+	for(curr = database->neighbor_list; curr != NULL; curr = curr->next)
+	{
+		if(link_id == curr->link_id)
+		{
+			return 1;//Exists
 		}
 	}
 	return 0; //Doesn't exist
@@ -219,6 +233,7 @@ void updateDBEntry(int router_id, int* neighbors, char* is_stubs ,int num_neighb
 		{
 			free(tmp_database_ptr->neighbor_list);
 			tmp_database_ptr->neighbor_list = head;
+			tmp_database_ptr->seq_num = seq_num;
 			break;
 		}
 	}
@@ -253,18 +268,21 @@ void updateLiveInterface(int link_id)
 {
     neighbor_t* curr;
     neighbor_t* new;
-    for(curr = database->neighbor_list; curr != NULL; curr = curr->next)
+    if(linkExists(link_id) == 0)
     {
-        if(curr->next == NULL)
-        {
-            new = (neighbor_t*)malloc(sizeof(neighbor_t));
-            curr->next = new;
-            new->link_id = link_id;
-            new->router_id = NULL;
-	    new->next = NULL;
-	    break;
-        }
-    }
+	    for(curr = database->neighbor_list; curr != NULL; curr = curr->next)
+	    {
+	        	if(curr->next == NULL)
+	        	{
+	            	new = (neighbor_t*)malloc(sizeof(neighbor_t));
+	            	curr->next = new;
+	            	new->link_id = link_id;
+	            	new->router_id = NULL;
+		    		new->next = NULL;
+		    		break;
+	       	 	}
+	    }
+	}
     indexDatabase();
 }
 void indexDatabase(void)

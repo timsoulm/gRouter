@@ -14,13 +14,13 @@
 #include "fragment.h"
 #include "packetcore.h"
 #include "gnet.h"
-#include "routingalgorithm.h"
+//#include "routingalgorithm.h"
 #include <stdlib.h>
 #include <slack/err.h>
 #include <netinet/in.h>
 #include <string.h>
 
-//route_entry_t route_tbl[MAX_ROUTES];       	// routing table
+route_entry_t route_tbl[MAX_ROUTES];       	// routing table
 mtu_entry_t MTU_tbl[MAX_MTU];		        // MTU table
 
 extern pktcore_t *pcore;
@@ -46,7 +46,6 @@ void IPIncomingPacket(gpacket_t *in_pkt)
         ip_packet_t *ip_pkt = (ip_packet_t *)&in_pkt->data.data;
 	uchar bcast_ip[] = IP_BCAST_ADDR;
 	
-	verbose(1,"[IPIncomingPacket]::RECEIVED PACKET");
 	// Is this IP packet for me??
 	if (IPCheckPacket4Me(in_pkt))
 	{
@@ -55,10 +54,10 @@ void IPIncomingPacket(gpacket_t *in_pkt)
 	} else if (COMPARE_IP(gNtohl(tmpbuf, ip_pkt->ip_dst), bcast_ip) == 0)
 	{
 		// TODO: rudimentary 'broadcast IP address' check
-		verbose(1, "[IPIncomingPacket]:: not repeat broadcast (final destination %s), packet thrown",
-		       IP2Dot(tmpbuf, gNtohl((tmpbuf+20), ip_pkt->ip_dst)));
+		//verbose(1, "[IPIncomingPacket]:: not repeat broadcast (final destination %s), packet thrown",
+		       //IP2Dot(tmpbuf, gNtohl((tmpbuf+20), ip_pkt->ip_dst)));
 		vlevel = prog_verbosity_level();
-		printGPacket(in_pkt, vlevel, "IP_ROUTINE");
+		//printGPacket(in_pkt, vlevel, "IP_ROUTINE");
 		IPProcessBcastPacket(in_pkt);
 			
 	} else
@@ -511,7 +510,7 @@ int IPSend2Output(gpacket_t *pkt)
 
 	vlevel = prog_verbosity_level();
 	//if (vlevel >= 3)
-		printGPacket(pkt, vlevel, "IP_ROUTINE");
+		//printGPacket(pkt, vlevel, "IP_ROUTINE");
 
 	return writeQueue(pcore->outputQ, (void *)pkt, sizeof(gpacket_t));
 }

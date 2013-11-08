@@ -54,6 +54,11 @@ void create_hello_packet(ospf_hello_pkt* hello_packet, short pkt_length)
     hello_packet-> header.version = 2;
     hello_packet-> header.type = OSPF_HELLO;
     hello_packet-> header.msg_length = htons(pkt_length);
+    hello_packet-> header.area_id = 0;
+    hello_packet-> header.checksum = 0;
+    hello_packet-> header.authentication_type = 0;
+    hello_packet-> header.authentication_array_start = 0;
+
 	hello_packet-> network_mask = 0x00FFFFFF; //255.255.255.0
 	hello_packet-> hello_interval = htons(10); //10 seconds
 	hello_packet-> options = 0; //figure out later
@@ -73,11 +78,14 @@ void *hello_message_thread(void *arg)
         for(curr=neighbor_list_head; curr != NULL; curr = curr->next)
         {
        		(curr->time_since_hello)++;
-       		if(curr->time_since_hello >= 5)
+       		if((curr->time_since_hello == 5) && (curr->type == ANY_TO_ANY)) {
        			curr->alive = 0;
-       			updateDeadInterface((curr->sourc_ip) & 0xFFFFFF00);
+       			updateDeadInterface((curr->source_ip) & 0xFFFFFF00);
+                verbose(1, "MESSAGETHREAD: Link Dead ///////////////////////////////");
        			OSPFSendLSUpdate(); //Inform Routers that link is down and Update database
+            }
         }
+        printDatabase();
     }
     return 0;
 }
@@ -102,7 +110,7 @@ void ospf_init()
     MyRouter.ls_seq_num = 0;
     MyRouter.num_of_interfaces = NumberOfInterfaces;
 
-    link_id_array = (int *)malloc(sizeof(int)*incoming_num_of_links);
+    link_id_array = (int *)malloc(sizeof(int)*NumberOfInterfaces);
 
     for(i=0;i<NumberOfInterfaces;i++)
     {
@@ -118,8 +126,10 @@ void ospf_init()
         neighbor->type = STUB;
     }
 
-	init_database(MyRouter.id, link_id_array, incoming_num_of_links);
+	init_database(MyRouter.id, link_id_array, NumberOfInterfaces);
 	ospf_init_complete = 1;
+    verbose(1, "INITIAL DATABASE PRINTED BELOW ==========>\n");
+    printDatabase();
 
 	pthread_create(&tid, NULL, &hello_message_thread, NULL);
 }
@@ -129,6 +139,10 @@ void create_lsupdate_packet(lsupdate_pkt_t* lsupdate_pkt, short pkt_length, int 
 	lsupdate_pkt-> common_header.version = 2;
 	lsupdate_pkt-> common_header.type = OSPF_LS_UPDATE;
 	lsupdate_pkt-> common_header.msg_length = htons(pkt_length);
+    lsupdate_pkt-> common_header.area_id = 0;
+    lsupdate_pkt-> common_header.checksum = 0;
+    lsupdate_pkt-> common_header.authentication_type = 0;
+    lsupdate_pkt-> common_header.authentication_array_start = 0;
 
 	lsupdate_pkt-> lsa_header.ls_age    	= 0;
 	lsupdate_pkt-> lsa_header.ls_type    	= htons(1);
@@ -153,8 +167,10 @@ void OSPFSendLSUpdate(void)
     char tmpbuf[MAX_TMPBUF_LEN];
     char *is_stub_array;
     int *link_id_array;
-    uchar net_mask[] = {0xFF, 0xFF, 0xFF, 0x00};
+    uchar net_mask[] = {0x00, 0xFF, 0xFF, 0xFF};
 
+    (MyRouter.ls_seq_num)++;
+    updateMySeqNum();
     //verbose(1, "[Send_LSUpdate_Packet]:: Send is starting...");
     NumberOfAliveNeighbours = GetNumberOfAliveNeighbours();
     PacketSize = sizeof(lsupdate_pkt_t) + sizeof(lsupdate_entry_t)*(NumberOfAliveNeighbours);
@@ -182,7 +198,6 @@ void OSPFSendLSUpdate(void)
     }
 
     OSPFbroadcastPacket(out_pkt, PacketSize);
-    (MyRouter.ls_seq_num)++;
 }
 
 void OSPFSendHelloPacket(void)
@@ -239,10 +254,11 @@ void OSPFProcessHelloMsg(gpacket_t *in_pkt)
             if(curr->alive==1)
             {
                 curr->time_since_hello = 0;
-            } else {
+            } else if (curr->alive == 0) {
                 curr->alive = 1;
                 curr->time_since_hello = 0;
-                updateLiveInterface(((curr->sourc_ip) & 0xFFFFFF00));
+                updateLiveInterface(((curr->source_ip) & 0xFFFFFF00));
+                verbose(1, "OSPFProcessHello: Link Went alive ====================");
                 OSPFSendLSUpdate(); //Inform Routers that link is down and Update database
             }
             break;
@@ -255,22 +271,24 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
 {
     ospf_neighbor_t *curr;
     char tmpbuf[MAX_TMPBUF_LEN];
-    ip_packet_t *ip_pkt = (ip_packet_t *)(in_pkt->data.data);
-    lsupdate_pkt_t *lsupdate_pkt = (lsupdate_pkt_t *)((uchar *)ip_pkt + ip_pkt->ip_hdr_len*4);
+    ip_packet_t *ipkt = (ip_packet_t *)(in_pkt->data.data);
+    lsupdate_pkt_t *lsupdate_pkt;
     int incoming_router_id, incoming_seq_num;
     short incoming_num_of_links;
     int *link_id_array;
     lsupdate_entry_t *entry;
     int PacketSize;
     char *link_type_array;
-    dbase_t dbase;
-
+    int i;
     //if linked list isnt initialized yet we dont want to accept LSUpdates
     if(ospf_init_complete==0)return;
 
-    incoming_router_id = gNtohl(tmpbuf, &(lsupdate_pkt->lsa_header.ls_id));
-    incoming_seq_num = gNtohl(tmpbuf, &(lsupdate_pkt->lsa_header.ls_seq_num));
+    lsupdate_pkt = (lsupdate_pkt_t *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
 
+    COPY_IP(&incoming_router_id, gNtohl(tmpbuf, &(lsupdate_pkt->lsa_header.ls_id)));
+    COPY_IP(&incoming_seq_num, gNtohl(tmpbuf, &(lsupdate_pkt->lsa_header.ls_seq_num)));
+
+    verbose(1, "incoming router_id= %x, incoming_seq_num = %d, database_seq_num = %d", incoming_router_id, incoming_seq_num, checkSeqNum(incoming_router_id));
     if(EntryExists(incoming_router_id) == 1)
     {
         if(checkSeqNum(incoming_router_id) >= incoming_seq_num)
@@ -285,9 +303,10 @@ void OSPFProcessLSUpdate(gpacket_t *in_pkt)
     link_id_array = (int *)malloc(sizeof(int)*incoming_num_of_links);
     link_type_array = (char *)malloc(sizeof(char)*incoming_num_of_links);
 
+
     entry = (lsupdate_entry_t *) ((uchar *)ipkt + (ipkt->ip_hdr_len)*4 + sizeof(lsupdate_pkt_t));
 
-    for(i = 0; i <num_of_links; i++)
+    for(i = 0; i <incoming_num_of_links; i++)
     {
         COPY_IP(&link_id_array[i] , gNtohl(tmpbuf, &(entry->link_id)));
         link_type_array[i] = entry->link_type;
